@@ -57,7 +57,8 @@ dgp_nt <- function(N, T, gamma, lambda, mu, phi) {
 
     # t >= 2
     for (t in 2:T) {
-        y[t, ] <- rnorm(N, mu[s[t]] + phi[s[t]] * y[t - 1, ], 1)  # AR1 process
+
+        y[t, ] <- rnorm(N, mu[s[t,]] + phi[s[t,]] * y[t - 1, ], 1)  # AR1 process
     }
 
     # output
