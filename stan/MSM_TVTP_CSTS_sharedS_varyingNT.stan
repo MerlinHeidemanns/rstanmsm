@@ -13,12 +13,12 @@ parameters {
 
   // Continuous observation model
   ordered[2] mu;                    // observation means
-  ordered[2] phi;
+  ordered[2] phi;                   // AR1 parameter
   real<lower=0> sigma;           // observation standard deviations
 }
 
 transformed parameters {
-  vector[2] logalpha[T];
+  vector[2] logalpha[T];             //
   simplex[2] A[T, 2];                // A[t][i][j] = p(z_t = j | z_{t-1} = i)
 
   for (t in 1:T){
