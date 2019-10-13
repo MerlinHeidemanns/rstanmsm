@@ -6,7 +6,10 @@
 
 
 
-dgp_nt_sim <- function(N.sim = 1, N.seq = 1, T.seq = 300, n_chains = 2, n_iter = 2000){
+dgp_nt_sim <- function(N.sim = 1, N.seq = 1, T.seq = 300, n_chains = 2, n_iter = 2000, working.directory.data){
+
+  tmp.dir <- as.character(getwd())
+  setwd(working.directory.data)
 
   # Start time
   orig_time <- Sys.time()
@@ -63,9 +66,10 @@ dgp_nt_sim <- function(N.sim = 1, N.seq = 1, T.seq = 300, n_chains = 2, n_iter =
   for (i in i_seq){
     out_par[, i] <- as.numeric(as.character(out_par[, i]))
   }
-  return(out_par)
+  save(out_par, file = "out_final.RData")
+  setwd(tmp.dir)
 }
 
 ## save output
-save(out_par, file = "out_final.RData")
+
 
