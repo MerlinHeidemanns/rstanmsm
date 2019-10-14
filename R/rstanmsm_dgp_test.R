@@ -6,7 +6,7 @@
 
 
 
-dgp_nt_sim <- function(N.sim = 1, N.seq = 1, T.seq = 300, n_chains = 2, n_iter = 2000, working.directory.data){
+dgp_nt_sim <- function(N.sim = 1, N.seq = 1, T.seq = 300, para.fixed = TRUE, n_chains = 2, n_iter = 2000, working.directory.data){
 
   tmp.dir <- as.character(getwd())
   setwd(working.directory.data)
@@ -30,7 +30,7 @@ dgp_nt_sim <- function(N.sim = 1, N.seq = 1, T.seq = 300, n_chains = 2, n_iter =
   initf2 <- function(chain_id = 1) {
   # cat("chain_id =", chain_id, "\n")
   list(mu = sort(rnorm(2, 0, 4)), gamma = rnorm(2, 0, 0.75), pi1 = c(0.5, 0.5),
-       lambda = rnorm(2, 0.5, 0.25), phi = sort(rnorm(2, 0.5, 0.25)), sigma = 1)
+       lambda = rnorm(2, 0, 0.5), phi = sort(rnorm(2, 0.5, 0.25)), sigma = 1)
   }
   init_ll <- lapply(1:n_chains, function(id) initf2(chain_id = id))
 
@@ -42,7 +42,9 @@ dgp_nt_sim <- function(N.sim = 1, N.seq = 1, T.seq = 300, n_chains = 2, n_iter =
       for (i in 1:N.sim){
         sim_counter <- sim_counter + 1
         data <- dgp_nt(N = n1, T = t1, gamma = gamma, mu = mu, lambda = lambda, phi = phi)
-        fit <- stan("MSM_TVTP_sharedS_varyingNT.stan", data = data[[1]], chains = n_chains,
+        fit <- stan("MSM_TVTP_sharedS_varyingNT.stan",
+                    data = data[[1]],
+                    chains = n_chains,
                     iter = n_iter,
                     init = init_ll)
         fit.ext <- as.matrix(fit)
