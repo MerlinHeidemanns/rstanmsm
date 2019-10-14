@@ -30,47 +30,52 @@
 #' dgp_nt(N = 2, T = 300, gamma = c(0.25, 0.5), lambda = c(0.75, 0.5), mu = c(2, 6), phi = c(0.2, 0.8))
 
 
-dgp_nt <- function(N, T, gamma, lambda, mu, phi) {
-    K <- 2  # N of states
+dgp_nt_istates <- function(N, T, gamma, mu, lambda, phi){
+  K <- 2
 
-    # tvtp
-    z <- matrix(rbinom(N * T, 1, 0.5), ncol = N, nrow = T)  # Predictors for discrete process
-    A <- array(NA, dim = c(2, 2, T, N))  # transition matrix
-    for (t in 1:T) {
-        A[1, 1, t, ] <- pnorm(gamma[1] + lambda[1] * z[t, ])
-        A[1, 2, t, ] <- 1 - A[1, 1, t, ]
-        A[2, 2, t, ] <- pnorm(gamma[2] + lambda[2] * z[t, ])
-        A[2, 1, t, ] <- 1 - A[2, 2, t, ]
+  # tvtp
+  z <- matrix(rbinom(N * T, 1, 0.5), ncol = N, nrow = T)
+  A <- array(NA, dim = c(2, 2, T, N))
+  for (t in 1:T){
+    A[1,1,t, ] <- pnorm(gamma[1] + lambda[1] * z[t, ])
+    A[1,2,t, ] <- 1- A[1,1,t, ]
+    A[2,2,t, ] <- pnorm(gamma[2] + lambda[2] * z[t, ])
+    A[2,1,t, ] <- 1 - A[2,2,t, ]
+  }
+
+  # states
+  s <- matrix(NA, nrow = T, ncol = N)
+  s[1, ] <- rbinom(N, 1, 0.5) + 1
+  for (n in 1:N){
+    for (t in 2:T){
+      s[t, n] <- rbinom(1, 1, A[s[t - 1, n], 2, t, n]) + 1
     }
+  }
 
-    # states
-    s <- matrix(NA, nrow = T, ncol = N)  # state matrix, TxN
-    s[1, ] <- rbinom(N, 1, 0.5) + 1
-    for (t in 2:T) {
-        s[t, ] <- rbinom(N, 1, A[s[t - 1], 2, t, ]) + 1
-    }
+  # outcomes
+  y <- matrix(NA, nrow = T, ncol = N)
 
-    # outcomes
-    y <- matrix(NA, nrow = T, ncol = N)  # continuous process
-    # t == 1
-    y[1, ] <- rnorm(N, mu[s[1, ]], 1)
+  # t == 1
+  y[1, ] <- rnorm(N, mu[s[1,]], 1)
 
-    # t >= 2
-    for (t in 2:T) {
+  # t >= 2
+  for (t in 2:T){
+    y[t, ] <- rnorm(N, mu[s[t, ]] +  phi[s[t, ]] * y[t - 1, ], 1)
+  }
 
-        y[t, ] <- rnorm(N, mu[s[t,]] + phi[s[t,]] * y[t - 1, ], 1)  # AR1 process
-    }
-
-    # output
-    data <- list(N = N, T = T, y = y, z = z)  # output: data
-    para <- list(pi1 = c(0.5, 0.5),
-                 gamma = gamma,
-                 mu = mu,
-                 lambda = lambda,
-                 phi = phi)  # output: parameters
-    other <- list(switches = sum(abs(s[2:T] - s[1:T - 1])),
-                  t.1 = length(s[s == 1]),
-                  t.2 = length(s[s == 2]))  # output: statistics of interests
-    out <- list(data, para, other)  # output
-    return(out)
+  data <- list(N = N,
+              T = T,
+              y = y,
+              z = z)
+  para <- list(pi1 = c(0.5, 0.5),
+               gamma = gamma,
+               mu = mu,
+               lambda = lambda,
+               phi = phi)
+  other <- list(switches = sum(abs(s[2:T] - s[1:T-1])),
+                t.1 = length(s[s == 1]),
+                t.2 = length(s[s == 2]))
+  out <- list(data, para, other)
+  return(out)
 }
+
