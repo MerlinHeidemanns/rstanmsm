@@ -13,7 +13,10 @@
 
 
 rstan_msm <- function(formula = c() , identical = FALSE, K = FALSE, data = FALSE){
-  check.formula(formula, K)
+  if(data_validate(data) != TRUE){
+    stop("Not all variables were found in the dataframe supplied.")
+  }
+  data_generate
   #if (K | data){
   #  stop("Please provide the number of states you intend to estimate.")
   #}
