@@ -46,19 +46,21 @@ rstan_msm.fit <- function(x_var = x_var, x_fix = x_fix,
   Mc_var <- ncol(x_var)
   Mc_sha <- ncol(x_sha)
 
-standata <- list(
-    N = N,
-    T = T,
-    NT = NT,
-    startstop = start.stop,
-    K = K,
-    Md_var = Md_var,
-    Md_sha = Md_sha,
-    Mc_var = Mc_var,
-    Mc_sha = Mc_sha,
-    z_sha = z_sha,
-    z_var = z_var,
-    x_sha = x_sha,
-    x_var = x_var
+  # data
+  standata <- list(
+      N = N,
+      T = T,
+      NT = NT,
+      startstop = start.stop,
+      K = K,
+      Md_var = Md_var,
+      Md_sha = Md_sha,
+      Mc_var = Mc_var,
+      Mc_sha = Mc_sha,
+      z_sha = z_sha,
+      z_var = z_var,
+      x_sha = x_sha,
+      x_var = x_var
     )
+
 }
