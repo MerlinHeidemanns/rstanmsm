@@ -6,7 +6,10 @@ Author@R: person("Merlin N.", "Heidemanns", email = "mnh2123@columbia.edu", role
 Description: More about what it does (maybe more than one line)
     Use four spaces when indenting paragraphs within the Description.
 Imports:
-    rstan,
+    methods,
+    Rcpp (>= 0.12.0),
+    rstan (>= 2.18.1),
+    rstantools (>= 2.0.0),
     tidyverse
 License: MIT + file LICENSE
 Encoding: UTF-8
@@ -16,3 +19,13 @@ Suggests:
     testthat
 URL: http://github.com/MerlinHeidemanns/rstanmsm
 BugReports: http://github.com/MerlinHeidemanns/rstanmsm/issues
+Biarch: true
+Depends: 
+    R (>= 3.4.0)
+LinkingTo: 
+    BH (>= 1.66.0),
+    Rcpp (>= 0.12.0),
+    RcppEigen (>= 0.3.3.3.0),
+    rstan (>= 2.18.1),
+    StanHeaders (>= 2.18.0)
+SystemRequirements: GNU make
