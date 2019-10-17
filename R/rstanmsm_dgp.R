@@ -30,17 +30,68 @@
 #' dgp_nt(N = 2, T = 300, gamma = c(0.25, 0.5), lambda = c(0.75, 0.5), mu = c(2, 6), phi = c(0.2, 0.8))
 
 
-dgp_nt_istates <- function(N, T, gamma, mu, lambda, phi){
+dgp_nt_k2 <- function(N, T, Mx_var, Mx_sha, Mz_var, Mz_sha,
+                      Mx_var_int = FALSE, Mx_sha_int = FALSE,
+                      Mz_var_int = FALSE, Mz_sha_int = FALSE,
+                      para.var = FALSE,
+                      gamma = NULL, lambda = NULL, zeta = NULL, beta = NULL,
+                      fit = FALSE){
   K <- 2
 
+  # parameters
+  mu <- sort(rnorm(K, 0, 3))
+  phi <- rnorm(K, 0, 0.5)
+  if (para.var){
+    gamma <- matrix(rnorm(Mz_sha , 0, 1), ncol = Mz_sha, nrow = 1)
+    lambda <- matrix(rnorm(Mz_var * K, 0, 1), ncol = Mz_var, nrow = K)
+    zeta <- matrix(rnorm(Mx_sha, 0, 1), ncol = Mx_var, nrow = 1)
+    beta <- matrix(rnorm(Mz_var * K, 0, 1), ncol = Mx_sha, nrow = K)
+    sigma <- 1
+  } else if (para.var == FALSE){
+    if (is.null(gamma)){
+      stop("Assign gamma[Mz_sha] parameters or set para.var to TRUE.")
+    }
+    if (is.null(lambda)){
+      stop("Assign lambda[K, Mz_var] parameters or set para.var to TRUE.")
+    }
+    if (is.null(zeta)){
+      stop("Assign zeta[Mx_sha] parameters or set para.var to TRUE.")
+    }
+    if (is.null(beta)){
+      stop("Assign beta[K, Mz_var] parameters or set para.var to TRUE.")
+    }
+  }
+
+
+  ## slicer
+  start.stop <- matrix(NA, ncol = 2, nrow = N)
+  for (n in 1:N){
+    start.stop[n, ] <- c(1 + (n - 1) * T, (n - 1) * T + T)
+  }
+
+  # predictors
+  z_var <- matrix(rbinom(N * T * Mz_var, 1, 0.5), ncol = Mz_var, nrow = N * T)
+  z_sha <- matrix(rbinom(N * T * Mz_sha, 1, 0.5), ncol = Mz_sha, nrow = N * T)
+  x_var <- matrix(rbinom(N * T * Mx_var, 1, 0.5), ncol = Mx_var, nrow = N * T)
+  x_sha <- matrix(rbinom(N * T * Mx_sha, 1, 0.5), ncol = Mx_sha, nrow = N * T)
+
+  # add intercepts
+  if (Mx_var_int) {x_var <- cbind(1, x_var)}
+  if (Mx_sha_int) {x_sha <- cbind(1, x_sha)}
+  if (Mz_var_int) {z_var <- cbind(1, z_var)}
+  if (Mz_sha_int) {z_sha <- cbind(1, z_sha)}
+
   # tvtp
-  z <- matrix(rbinom(N * T, 1, 0.5), ncol = N, nrow = T)
   A <- array(NA, dim = c(2, 2, T, N))
-  for (t in 1:T){
-    A[1,1,t, ] <- pnorm(gamma[1] + lambda[1] * z[t, ])
-    A[1,2,t, ] <- 1- A[1,1,t, ]
-    A[2,2,t, ] <- pnorm(gamma[2] + lambda[2] * z[t, ])
-    A[2,1,t, ] <- 1 - A[2,2,t, ]
+  for (n in 1:N){
+    for (t in 1:T){
+      A[1,1,t, n] <- pnorm(t(z_sha[start.stop[n, 1] + t - 1, ]) %*% gamma +
+                           t(z_var[start.stop[n, 1] + t - 1, ]) %*% lambda[1, ])
+      A[1,2,t, n] <- 1- A[1,1,t, n]
+      A[2,2,t, n] <- pnorm(t(z_sha[start.stop[n, 1] +  t - 1]) %*% gamma +
+                           t(z_var[start.stop[n, 1] + t - 1, ]) %*% lambda[2, ])
+      A[2,1,t, n] <- 1 - A[2,2,t, n]
+    }
   }
 
   # states
@@ -53,14 +104,17 @@ dgp_nt_istates <- function(N, T, gamma, mu, lambda, phi){
   }
 
   # outcomes
-  y <- matrix(NA, nrow = T, ncol = N)
+  y <- rep(NA, times = N * T)
+  for (n in 1:N){
+    # t == 1
+    y[start.stop[n, 1]] <- rnorm(1, mu[s[1, n]], sigma)
 
-  # t == 1
-  y[1, ] <- rnorm(N, mu[s[1,]], 1)
-
-  # t >= 2
-  for (t in 2:T){
-    y[t, ] <- rnorm(N, mu[s[t, ]] +  phi[s[t, ]] * y[t - 1, ], 1)
+    # t >= 2
+    for (t in 2:T){
+      y[start.stop[n, 1] + t - 1] <- rnorm(1, mu[s[t, n]] +
+                                              phi[s[t, n]] * y[start.stop[n, 1] + t - 2],
+                                           sigma)
+    }
   }
 
   data <- list(N = N,
