@@ -15,8 +15,8 @@ data {
   // predictors
   matrix[NT, Md_sha] z_sha;         // matrix of shared parameters of discrete process
   matrix[NT, Md_var] z_var;         // matrix of shared parameters of discrete process
-  matrix[NT, Mc_sha] x_sha;         // matrix of shared parameters of discrete process
-  matrix[NT, Mc_var] x_var;         // matrix of shared parameters of discrete process
+  matrix[NT, Mc_sha] x_sha;         // matrix of shared continuous of discrete process
+  matrix[NT, Mc_var] x_var;         // matrix of shared continuous of discrete process
 
   // output
   vector[NT] y;                     // vector of output
@@ -25,13 +25,13 @@ data {
 parameters {
   // Discrete state model
   simplex[K] pi1[N];                    // initial state probabilities
-  matrix[Md_sha, K] gamma;              // tvtp coefficient
+  vector[Md_sha] gamma;              // tvtp coefficient
   matrix[Md_var, K] lambda;              // tvtp coefficient
 
   // Continuous observation model
   ordered[K] mu;                     // observation means
   ordered[K] phi;                    // observation AR
-  matrix[Mc_sha, K] zeta;                // continuous observation model coefficients
+  vector[Mc_sha] zeta;                // continuous observation model coefficients
   matrix[Mc_var, K] beta;                // continuous observation model coefficients
   real<lower=0> sigma;               // observation standard deviations
 }
@@ -41,9 +41,9 @@ transformed parameters {
   simplex[2] A[N, T, 2];                // A[t][i][j] = p(z_t = j | z_{t-1} = i)
   for (nn in 1:N){
     for (t in 1:T){
-      A[nn, t, 1, 1] = normal_cdf(z_sha[startstop[nn, 1] + t - 1] *   gamma[:,1] +
+      A[nn, t, 1, 1] = normal_cdf(z_sha[startstop[nn, 1] + t - 1] *   gamma +
                                   z_var[startstop[nn, 1] + t - 1] *  lambda[:,1] , 0, 1);
-      A[nn, t, 2, 2] = normal_cdf(z_sha[startstop[nn, 1] + t - 1] *   gamma[:,2] +
+      A[nn, t, 2, 2] = normal_cdf(z_sha[startstop[nn, 1] + t - 1] *   gamma +
                                   z_var[startstop[nn, 1] + t - 1] *  lambda[:,2], 0, 1);
       A[nn, t, 1, 2] = 1 - A[nn, t, 1, 1];
       A[nn, t, 2, 1] = 1 - A[nn, t, 2, 2];
@@ -66,25 +66,33 @@ transformed parameters {
                             log(A[nn, t, i, j]) +
                             normal_lpdf(y[startstop[nn, 1] + t - 1] | mu[j] +
                                         phi[j] * y[startstop[nn, 1] + t - 2] +
-                                        x_sha[startstop[nn, 1] + t - 1] * zeta[:,j] +
+                                        x_sha[startstop[nn, 1] + t - 1] * zeta +
                                         x_var[startstop[nn, 1] + t - 1] * beta[:,j], sigma);
         }
-        logalpha[t, nn, j] = log_sum_exp(accumulator); // then put this through log_sum_exp and put p(s_t = j|x_{1:t}) into logalpha[t, j];
+        logalpha[t, nn, j] = log_sum_exp(accumulator);
       }
     }
-
   }
   }
 }
 
 model {
-  target += normal_lpdf(mu | 4, 2);
+  // structural
+  target += normal_lpdf(mu | 0, 4);
   target += normal_lpdf(phi | 0.5, 0.25);
+
+  // shared
+  target += normal_lpdf(gamma | 0, 0.5);
+  target += normal_lpdf(zeta | 0, 4);
+
+  // varying
   for (i in 1:2){
     target += normal_lpdf(lambda[i] | 0, 2);
     target += normal_lpdf(beta[i] | 0, 5);
   }
+
+  // likelihood
   for (n in 1:N){
-    target += log_sum_exp(logalpha[T, n]); // Note: update based only on last logalpha
+    target += log_sum_exp(logalpha[T, n]);
   }
 }
