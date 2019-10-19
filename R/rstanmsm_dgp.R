@@ -111,19 +111,41 @@ dgp_nt_k2 <- function(N, T, Mx_var, Mx_sha, Mz_var, Mz_sha,
 
     # t >= 2
     for (t in 2:T){
+      mu_t <- 0
+      if (Mx_var != 0){
+        mu_t <- mu_t + t(x_sha[start.stop[n, 1] + t - 1, ]) %*% gamma
+      }
+      if (Mx_sha != 0){
+        mu_t <- mu_t + t(x_var[start.stop[n, 1] + t - 1, ]) %*% lambda[2, ]
+      }
       y[start.stop[n, 1] + t - 1] <- rnorm(1, mu[s[t, n]] +
-                                              phi[s[t, n]] * y[start.stop[n, 1] + t - 2],
-                                           sigma)
+                                              phi[s[t, n]] * y[start.stop[n, 1] + t - 2] +
+                                             mu_t, sigma)
     }
   }
-
-  data <- list(N = N,
-              T = T,
-              y = y,
-              z = z)
+  if (TRUE){
+    data = list(N = N,
+                T = T,
+                startstop = start.stop,
+                x_var = x_var,
+                x_sha = x_sha,
+                z_var = z_var,
+                z_sha = z_sha,
+                Mx_var = Mx_var,
+                Mx_sha = Mx_sha,
+                Mz_var = Mz_var,
+                Mz_sha = Mz_sha)
+  } else {
+    data <- list(N = N,
+            T = T,
+            y = y,
+            z = z)
+  }
   para <- list(pi1 = c(0.5, 0.5),
                gamma = gamma,
+               lambda = lambda,
                mu = mu,
+               zeta = zeta,
                lambda = lambda,
                phi = phi)
   other <- list(switches = sum(abs(s[2:T] - s[1:T-1])),
@@ -132,4 +154,9 @@ dgp_nt_k2 <- function(N, T, Mx_var, Mx_sha, Mz_var, Mz_sha,
   out <- list(data, para, other)
   return(out)
 }
+
+dgp_nt_k2(2, 30, 1, 1, 1, 1, para.var = TRUE)
+
+
+
 
