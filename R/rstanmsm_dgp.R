@@ -143,7 +143,7 @@ dgp_nt_k2 <- function(N, T, Mx_var, Mx_sha, Mz_var, Mz_sha,
             y = y,
             z = z)
   }
-  para <- list(pi1 = c(0.5, 0.5),
+  para <- list(pi1 = rep(0.5, N),
                gamma = gamma,
                lambda = lambda,
                mu = mu,
@@ -157,7 +157,6 @@ dgp_nt_k2 <- function(N, T, Mx_var, Mx_sha, Mz_var, Mz_sha,
   return(out)
 }
 
-dgp_nt_k2(2, 30, 1, 1, 1, 1, para.var = TRUE)
 
 
 
