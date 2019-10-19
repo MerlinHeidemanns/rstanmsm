@@ -6,11 +6,13 @@
 
 #' rstan_msm_fit: Call for rstan_msm
 #'
+#'
+#' @export
 
 
-rstan_msm.fit <- function(x_var = x_var, x_fix = x_fix,
-                         z_var = z_var, z_fix = z_fix,
-                         y = y, N = n, T = t, K = 2, family = gaussian()){
+rstan_msm.fit <- function(x_var, x_sha,
+                         z_var, z_sha,
+                         y = y, n, t, K = 2, family = gaussian()){
 
     # NT
     N <- max(n)
@@ -57,8 +59,9 @@ rstan_msm.fit <- function(x_var = x_var, x_fix = x_fix,
        z_sha = z_sha,
        z_var = z_var,
        x_sha = x_sha,
-       x_var = x_var
+       x_var = x_var,
+       y = y
      )
-  fit <- rstan::sampling("rstan_msm_fit.stan", data = standata)
+  fit <- rstan::sampling(stanmodels$rstan_msm_fit, data = standata)
   return(fit)
 }

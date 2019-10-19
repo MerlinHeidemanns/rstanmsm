@@ -4,8 +4,7 @@
 \alias{rstan_msm.fit}
 \title{rstan_msm_fit: Call for rstan_msm}
 \usage{
-rstan_msm.fit(x_var = x_var, x_fix = x_fix, z_var = z_var,
-  z_fix = z_fix, y = y, N = n, T = t, K = 2,
+rstan_msm.fit(x_var, x_sha, z_var, z_sha, y = y, n, t, K = 2,
   family = gaussian())
 }
 \description{
