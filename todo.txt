@@ -1,0 +1,7 @@
+## TODO
+
+
+### rstan_msm.fit.R
+
+  * specify chains and iterations and control setup
+  *
