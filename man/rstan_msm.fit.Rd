@@ -5,7 +5,9 @@
 \title{rstan_msm_fit: Call for rstan_msm}
 \usage{
 rstan_msm.fit(x_var, x_sha, z_var, z_sha, y = y, n, t, K = 2,
-  family = gaussian())
+  family = gaussian(), nchains = 4, niter = 2000,
+  warmup = floor(niter/2), thin = 1, controls = NULL,
+  init.prior = FALSE)
 }
 \description{
 rstan_msm_fit: Call for rstan_msm

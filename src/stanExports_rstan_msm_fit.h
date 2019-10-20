@@ -637,9 +637,9 @@ public:
             current_statement_begin__ = 89;
             for (int i = 1; i <= 2; ++i) {
                 current_statement_begin__ = 90;
-                lp_accum__.add(normal_log(get_base1(lambda, i, "lambda", 1), 0, 2));
+                lp_accum__.add(normal_log(stan::model::rvalue(lambda, stan::model::cons_list(stan::model::index_omni(), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "lambda"), 0, 2));
                 current_statement_begin__ = 91;
-                lp_accum__.add(normal_log(get_base1(beta, i, "beta", 1), 0, 5));
+                lp_accum__.add(normal_log(stan::model::rvalue(beta, stan::model::cons_list(stan::model::index_omni(), stan::model::cons_list(stan::model::index_uni(i), stan::model::nil_index_list())), "beta"), 0, 5));
             }
             current_statement_begin__ = 95;
             for (int n = 1; n <= N; ++n) {
