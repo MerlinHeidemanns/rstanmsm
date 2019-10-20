@@ -12,7 +12,10 @@
 
 rstan_msm.fit <- function(x_var, x_sha,
                          z_var, z_sha,
-                         y = y, n, t, K = 2, family = gaussian()){
+                         y = y, n, t, K = 2, family = gaussian(),
+                         nchains = 4, niter = 2000, warmup = floor(niter/2),
+                         thin = 1, controls = NULL,
+                         init.prior = FALSE){
 
     # NT
     N <- max(n)
@@ -62,6 +65,39 @@ rstan_msm.fit <- function(x_var, x_sha,
        x_var = x_var,
        y = y
      )
-  fit <- rstan::sampling(stanmodels$rstan_msm_fit, data = standata)
+
+    # initialization
+    if (init.prior) {
+      mu_prior_mean <- gamma_prior_mean <- lambda_prior_mean <- zeta_prior_mean <- beta_prior_mean <- 0
+      phi_prior_mean <- 0.5; phi_prior_sd <- 0.25
+      mu_prior_sd <- 4; gamma_prior_sd <- 0.5; lambda_prior_sd <- 0.5; zeta_prior_sd <- 4; beta_prior_sd <- 4
+
+      mu_init <- sort(rnorm(K, mu_prior_mean, mu_prior_sd), decreasing = FALSE)
+      phi_init <- sort(rnorm(K, phi_prior_mean, phi_prior_sd), decreasing = FALSE)
+      gamma_init <- rnorm(Md_sha, gamma_prior_mean, gamma_prior_sd)
+      lambda_init <- matrix(rnorm(K * Md_var, lambda_prior_mean, lambda_prior_sd), ncol = K, nrow = Md_var)
+      zeta_init <- rnorm(Mc_sha, zeta_prior_mean, zeta_prior_sd)
+      beta_init <- matrix(rnorm(K * Mc_var, beta_prior_mean, beta_prior_sd), ncol = K, nrow = Mc_var)
+      pi1_init <- matrix(rep(0.5, times = N * K), ncol = K, nrow = N)
+
+      initf2 <- function(chain_id = 1) {
+      list(pi1 = pi1_init,
+           gamma = gamma_init,
+           lambda = lambda_init,
+           mu = mu_init,
+           phi = phi_init,
+           zeta = zeta_init,
+           beta = beta_init,
+           sigma = 1)
+      }
+      init_ll <- lapply(1:n_chains, function(id) initf2(chain_id = id))
+      init = init_ll
+    } else {
+      init = "random"
+    }
+
+  fit <- rstan::sampling(stanmodels$rstan_msm_fit, data = standata,
+                         chains = nchains, warmup = warmup, iter = 2000,
+                         init = init)
   return(fit)
 }
