@@ -44,22 +44,25 @@ transformed parameters {
   simplex[K] A[N, T, K];             // A[t][i][j] = p(z_t = j | z_{t-1} = i)
   for (nn in 1:N){
     for (t in 1:T){
+      // inner loop over K; pr(S_t = j| S_{t-1} = i
+      // generate denominator
       for (i in 1:K){
-        real den[K - 1];
+        real den[K];
         real den_sum;
         for (j in 1:K){
-          if (i == j){
-            den[j] = exp(z_var[startstop[nn, 1] + t - 1] * lambda[i, j]);
+          if (i != j){
+            den[j] = 0.0;
           } else {
-            den[j] = 0;
+            den[j] = exp(z_var[startstop[nn, 1] + t - 1] * lambda[i, j]);
           }
         }
         den_sum = log_sum_exp(den);
         for (j in 1:K){
           if (i == j){
-            A[nn, t, i, j] = exp(log(1) - log(1 + den_sum));
+            A[nn, t, i, j] = exp(log(1) - log(1 + den_sum)); // baseline
+          } else {
+            A[nn, t, i, j] = exp(log(exp(z_var[startstop[nn, 1] + t - 1] * lambda[i, j])) - log(den_sum)); // other
           }
-          A[nn, t, i, j] = exp(log(exp(z_var[startstop[nn, 1] + t - 1] * lambda[i, j])) - log(den_sum));
         }
       }
     }
@@ -71,7 +74,7 @@ transformed parameters {
 
   for (nn in 1:N){
     for (j in 1:K){
-      logalpha[1, nn, j] = log(pi1[nn][j]) + normal_lpdf(y[startstop[nn, 1]] | mu[j], sigma);
+      logalpha[1, nn, j] = log(pi1[nn, j]) + normal_lpdf(y[startstop[nn, 1]] | mu[j], sigma);
     }
     for (t in 2:T){
       for (j in 1:K) {
@@ -106,7 +109,7 @@ model {
       target += normal_lpdf(lambda[:,j, i] | 0, 2);
     }
   }
-  for (i in 1:K)
+  for (i in 1:K){
     target += normal_lpdf(beta[:,i] | 0, 5);
   }
 
