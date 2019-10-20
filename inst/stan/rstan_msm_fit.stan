@@ -20,25 +20,28 @@ data {
 
   // output
   vector[NT] y;                     // vector of output
+
+  // priors
+  // real prior_mean[Md];
 }
 
 parameters {
   // Discrete state model
-  simplex[K] pi1[N];                    // initial state probabilities
+  simplex[K] pi1[N];                 // initial state probabilities
   vector[Md_sha] gamma;              // tvtp coefficient
-  matrix[Md_var, K] lambda;              // tvtp coefficient
+  matrix[Md_var, K] lambda;          // tvtp coefficient
 
   // Continuous observation model
   ordered[K] mu;                     // observation means
   ordered[K] phi;                    // observation AR
-  vector[Mc_sha] zeta;                // continuous observation model coefficients
-  matrix[Mc_var, K] beta;                // continuous observation model coefficients
+  vector[Mc_sha] zeta;               // continuous observation model coefficients
+  matrix[Mc_var, K] beta;            // continuous observation model coefficients
   real<lower=0> sigma;               // observation standard deviations
 }
 
 transformed parameters {
   vector[2] logalpha[T, N];
-  simplex[2] A[N, T, 2];                // A[t][i][j] = p(z_t = j | z_{t-1} = i)
+  simplex[2] A[N, T, 2];             // A[t][i][j] = p(z_t = j | z_{t-1} = i)
   for (nn in 1:N){
     for (t in 1:T){
       A[nn, t, 1, 1] = normal_cdf(z_sha[startstop[nn, 1] + t - 1] *   gamma +
