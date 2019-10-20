@@ -87,8 +87,8 @@ model {
 
   // varying
   for (i in 1:2){
-    target += normal_lpdf(lambda[i] | 0, 2);
-    target += normal_lpdf(beta[i] | 0, 5);
+    target += normal_lpdf(lambda[:,i] | 0, 2);
+    target += normal_lpdf(beta[:,i] | 0, 5);
   }
 
   // likelihood
