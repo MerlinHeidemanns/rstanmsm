@@ -68,7 +68,7 @@ transformed parameters {
           accumulator[i] = logalpha[t - 1, nn, i] +
                             log(A[nn, t, i, j]) +
                             normal_lpdf(y[startstop[nn, 1] + t - 1] | mu[j] +
-                                        phi[j] * y[startstop[nn, 1] + t - 2] +
+                                        y[startstop[nn, 1] + t - 2] * phi[j] +
                                         x_sha[startstop[nn, 1] + t - 1] * zeta +
                                         x_var[startstop[nn, 1] + t - 1] * beta[:,j], sigma);
         }
