@@ -3,5 +3,20 @@
 
 ### rstan_msm.fit.R
 
-  * specify chains and iterations and control setup
   *
+
+
+### rstan_msm_fit.stan
+
+  * mu for t = 1 is insufficient and only makes sense if these are only time-series
+  * change but also dgp
+
+
+### dgp_nt
+
+  * use normal instead of rbinom for testing
+  * add random error to transition probabilities
+
+### Extensions
+
+  * extend model to spatial data and use information from neighboring observations to infer the state of the specific cell
