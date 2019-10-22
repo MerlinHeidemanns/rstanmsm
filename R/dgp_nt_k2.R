@@ -37,17 +37,18 @@ dgp_nt_k2 <- function(N, T, Mx_var, Mx_sha, Mz_var, Mz_sha,
                       Mz_var_int = FALSE, Mz_sha_int = FALSE,
                       para.var = FALSE,
                       gamma = NULL, lambda = NULL, zeta = NULL, beta = NULL,
+                      mu = NULL, phi = NULL,
                       fit = FALSE){
   K <- 2
 
   # parameters
-  mu <- sort(rnorm(K, 0, 3))
-  phi <- rnorm(K, 0, 0.5)
   if (para.var){
     gamma <- matrix(rnorm(Mz_sha , 0, 1), ncol = Mz_sha, nrow = 1)
-    lambda <- matrix(rnorm(Mz_var * K, 0, 1), ncol = Mz_var, nrow = K)
+    lambda <- matrix(rnorm(Mz_var * K, 0, 1), ncol = K, nrow = Mz_var)
     zeta <- matrix(rnorm(Mx_sha, 0, 1), ncol = Mx_var, nrow = 1)
-    beta <- matrix(rnorm(Mz_var * K, 0, 1), ncol = Mx_sha, nrow = K)
+    beta <- matrix(rnorm(Mx_var * K, 0, 1), ncol = K, nrow = Mx_var)
+    mu <- sort(rnorm(K, 0, 3))
+    phi <- sort(rnorm(K, 0, 0.5))
     sigma <- 1
   } else if (para.var == FALSE){
     if (is.null(gamma)){
@@ -88,10 +89,10 @@ dgp_nt_k2 <- function(N, T, Mx_var, Mx_sha, Mz_var, Mz_sha,
   for (n in 1:N){
     for (t in 1:T){
       A[1,1,t, n] <- pnorm(t(z_sha[start.stop[n, 1] + t - 1, ]) %*% gamma +
-                           t(z_var[start.stop[n, 1] + t - 1, ]) %*% lambda[1, ])
+                           t(z_var[start.stop[n, 1] + t - 1, ]) %*% lambda[, 1])
       A[1,2,t, n] <- 1- A[1,1,t, n]
-      A[2,2,t, n] <- pnorm(t(z_sha[start.stop[n, 1] +  t - 1]) %*% gamma +
-                           t(z_var[start.stop[n, 1] + t - 1, ]) %*% lambda[2, ])
+      A[2,2,t, n] <- pnorm(t(z_sha[start.stop[n, 1] + t - 1, ]) %*% gamma +
+                           t(z_var[start.stop[n, 1] + t - 1, ]) %*% lambda[, 2])
       A[2,1,t, n] <- 1 - A[2,2,t, n]
     }
   }
@@ -115,10 +116,10 @@ dgp_nt_k2 <- function(N, T, Mx_var, Mx_sha, Mz_var, Mz_sha,
     for (t in 2:T){
       mu_t <- 0
       if (Mx_var != 0){
-        mu_t <- mu_t + t(x_sha[start.stop[n, 1] + t - 1, ]) %*% gamma
+        mu_t <- mu_t + t(x_sha[start.stop[n, 1] + t - 1, ]) %*% zeta
       }
       if (Mx_sha != 0){
-        mu_t <- mu_t + t(x_var[start.stop[n, 1] + t - 1, ]) %*% beta[2, ]
+        mu_t <- mu_t + t(x_var[start.stop[n, 1] + t - 1, ]) %*% beta[, s[t, n]]
       }
       y[start.stop[n, 1] + t - 1] <- rnorm(1, mu[s[t, n]] +
                                               phi[s[t, n]] * y[start.stop[n, 1] + t - 2] +
@@ -134,8 +135,6 @@ dgp_nt_k2 <- function(N, T, Mx_var, Mx_sha, Mz_var, Mz_sha,
   # output
   data = list(N = N,
               T = T,
-              n = n,
-              t = t,
               NT = N * T,
               K = K,
               startstop = start.stop,
@@ -143,10 +142,10 @@ dgp_nt_k2 <- function(N, T, Mx_var, Mx_sha, Mz_var, Mz_sha,
               x_sha = x_sha,
               z_var = z_var,
               z_sha = z_sha,
-              Mx_var = Mx_var,
-              Mx_sha = Mx_sha,
-              Mz_var = Mz_var,
-              Mz_sha = Mz_sha,
+              Mc_var = ncol(x_var),
+              Mc_sha = ncol(x_sha),
+              Md_var = ncol(z_var),
+              Md_sha = ncol(z_sha),
               y = y)
 
   para <- list(pi1 = rep(0.5, N),
@@ -162,3 +161,4 @@ dgp_nt_k2 <- function(N, T, Mx_var, Mx_sha, Mz_var, Mz_sha,
   out <- list(data, para, other)
   return(out)
 }
+
