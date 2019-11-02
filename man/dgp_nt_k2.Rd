@@ -7,7 +7,7 @@
 dgp_nt_k2(N, T, Mx_var, Mx_sha, Mz_var, Mz_sha, Mx_var_int = FALSE,
   Mx_sha_int = FALSE, Mz_var_int = FALSE, Mz_sha_int = FALSE,
   para.var = FALSE, gamma = NULL, lambda = NULL, zeta = NULL,
-  beta = NULL, fit = FALSE)
+  beta = NULL, mu = NULL, phi = NULL, fit = FALSE)
 }
 \arguments{
 \item{N}{The number of separate time series.}
