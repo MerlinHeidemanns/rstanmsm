@@ -155,7 +155,7 @@ dgp_nt_k2 <- function(N, T, Mx_var, Mx_sha, Mz_var, Mz_sha,
                zeta = zeta,
                beta = beta,
                phi = phi)
-  other <- list(switches = sum(abs(s[2:T] - s[1:T-1])),
+  other <- list(switches = sum(abs(s[2:T, ] - s[1:T-1, ])),
                 t.1 = length(s[s == 1]),
                 t.2 = length(s[s == 2]))
   out <- list(data, para, other)

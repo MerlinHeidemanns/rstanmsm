@@ -61,6 +61,12 @@ dgp_nt_kbeq3 <- function(N, T, Mx_var, Mx_sha, Mz_var, Mz_sha,
     if (is.null(beta)){
       stop("Assign beta[K, Mz_var] parameters or set para.var to TRUE.")
     }
+    if (is.null(mu)){
+      stop("Assign mu[K] parameters or set para.var to TRUE.")
+    }
+    if (is.null(phi)){
+      stop("Assign phi[K] parameters or set para.var to TRUE.")
+    }
   }
 
 
@@ -167,3 +173,7 @@ dgp_nt_kbeq3 <- function(N, T, Mx_var, Mx_sha, Mz_var, Mz_sha,
   out <- list(data, para, other)
   return(out)
 }
+
+
+
+
