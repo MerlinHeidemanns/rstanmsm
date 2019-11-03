@@ -55,7 +55,7 @@ stan_msm.fit <- function(x_e, x_d, y = y, n, t, K = 2, has_intercept = c(0, 0),
      )
 
     # stanfit
-    stanfit <- m # EXCHANGE
+    stanfit <- stanmodels$msm_constant_continuous # EXCHANGE
 
     # initialization
     if (init.prior) {
@@ -97,13 +97,6 @@ stan_msm.fit <- function(x_e, x_d, y = y, n, t, K = 2, has_intercept = c(0, 0),
       }
       check <- try(check_stanfit(stanfit))
       if (!isTRUE(check)) return(standata)
-
-      # naming
-      #stanfit@sim$fnames_oi <- naming_fun(N = N,
-      #                                    T = T,
-      #                                    K = K,
-      #                                    names = stanfit@sim$fnames_oi,
-      #                                    names_list = names_list)
 
       return(structure(stanfit))
     }

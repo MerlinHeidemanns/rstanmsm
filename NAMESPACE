@@ -2,6 +2,7 @@
 
 export(dgp_nt_k2)
 export(dgp_nt_kbeq3)
+export(stan_msm)
 import(Rcpp)
 import(methods)
 importFrom(rstan,sampling)

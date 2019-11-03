@@ -4,6 +4,8 @@
 #'
 #' @param formula_discrete The formula of the discrete Markov process
 #' @param formula_continuous The formula of the continuous process
+#'
+#' @export
 
 stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gaussian(),
                      data = data, n = n, t = t, K = NULL, na.action = NULL,
@@ -38,17 +40,18 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
     n <- data$n
     t <- data$t
     has_intercept <- parsed_formula$has_intercept
+    N <- max(data$n)
 
     stanfit <- stan_msm.fit(x_e = x_e, x_d = x_d, y = y, n = n, t = t, K = K, has_intercept = has_intercept,
                             formula = parsed_formula, family = family, init.prior = init_prior,
                             algorithm = algorithm, iter = 1000, chains = 1)
 
 
-    fit <- nlist(stanfit, algorithm, family, formula_discrete, formula_continuous,
-                 data, y = y, x = list(x_d = x_d, x_e = x_e),
-                 stan_function = "stan_msm",
-                 model = mf, parsed_formula = parsed_formula, formula_discrete = formula_discrete, formula_continuous = formula_continuous,
-                 call)
+    fit <- list(stanfit = stanfit, algorithm = algorithm, family = family,
+                 data = data, y = y, x = list(x_d = x_d, x_e = x_e), N = N, K = K,
+                 stan_function = "stan_msm", model = mf, parsed_formula = parsed_formula,
+                formula_discrete = formula_discrete, formula_continuous = formula_continuous,
+                 call = call)
 
     out <- stanreg(fit)
     return(out)

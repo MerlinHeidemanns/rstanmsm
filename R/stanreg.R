@@ -10,6 +10,9 @@ stanreg <- function(object) {
   family <- object$family
   y <- object$y
   x <- object$x
+  N <- object$N
+  K <- object$K
+  T <- object$T
   parsed_formula <- object$parsed_formula
   names_list <- list(alpha = parsed_formula$d,
                      beta = parsed_formula$e,
@@ -48,7 +51,7 @@ stanreg <- function(object) {
 
   # coefs
 
-  out <- nlist(
+  out <- list(
     coefs_median = coefs,
     ses = ses,
     fitted.values = mu,
