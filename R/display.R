@@ -1,1 +1,1 @@
-setMethod("display", signature(object = "rstanmsm"))
+#setMethod("display", signature(object = "rstanmsm"))
