@@ -150,9 +150,9 @@ check_data <- function(data, order_continuous, parsed_formula, n_var, t_var){
 
 
 .check_order <- function(names_dta, order_continuous, has_intercept){
-  cnd1 <- !(any(grepl(order_continuous, names_dta)) == TRUE)
-  cnd2 <- !(grepl("Intercept", order_continuous) & (has_intercept[2] == 1))
-  if (cnd1 & cnd2) {
+  cnd1 <- !(all(is.element(order_continuous, names_dta)))
+  cnd2 <- !(is.element("Intercept", order_continuous) & (has_intercept[2] == 1))
+  if ((cnd1) & (cnd2)) {
     stop("Predictors that are supposed to be ordered are not indicated as varying by state.")
   }
 }
