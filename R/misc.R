@@ -8,7 +8,7 @@ formula_parse <- function(formula_discrete = NULL, formula_continuous = formula_
   int_pattern <- "(^1$)|(^1\\|2$)|(^1\\|3$)"
 
   # out list
-  out.lst <- nlist(y = NULL,
+  out.lst <- list(y = NULL,
                    a = NULL,
                    b = NULL,
                    c = NULL,
@@ -131,6 +131,59 @@ data_split <- function(data = data, tvtp = FALSE, parsed_formula = parsed_formul
 }
 
 
+
+
+#' check_order
+#'
+#' @param data Included data frame
+#' @param order_continuous Vector of parameter names declared to be continuous
+
+check_data <- function(data, order_continuous, parsed_formula, n_var, t_var){
+  names_dta <- colnames(data)
+  # check inclusion
+  .check_inclusion(names_dta, parsed_formula = parsed_formula)
+  # check for n and t
+  .check_nt(names_dta = names_dta, n_var = n_var, t_var = t_var)
+  # check for order predictor
+  .check_order(names_dta = parsed_formula$e, order_continuous = order_continous, has_intercept = parsed_formula$has_intercept)
+}
+
+
+.check_order <- function(names_dta, order_continuous, has_intercept){
+  cnd1 <- !(any(grepl(order_continuous, names_data) == TRUE))
+  cnd2 <- !(grepl("Intercept", order_continuous) & (has_intercept[2] == 1))
+  if (cnd1 & cnd2) {
+    stop("Predictors that are supposed to be ordered are not indicated as varying by state.")
+  }
+}
+
+.check_nt <- function(names_dta, n_var, t_var){
+  if (!(is.element(n_var, names_dta) & is.element(t_var, names_dta))){
+    stop("Please supply indexes for n and t.")
+  }
+}
+
+.check_inclusion <- function(names_dta, parsed_formula){
+  for (i in parsed_formula$all.var){
+    if (!is.element(i, names_dta)) stop(paste0("The predictor ", i, " has not been found in the data."))
+  }
+}
+
+#' create_order_vector
+#'
+#' @param formula The formula list
+#' @param order_continuous A character vector indicating which parameters are ordered.
+#'
+#' This function creates a 0/1 vector indicating whether a particular parameter that is varying across states is ordered.
+
+create_order_vector <- function(formula, order_continuous){
+  tmp <- c("Intercept", order_continuous)
+  out <- rep(0, length(tmp))
+  out[match(formula$e, tmp)] <- 1
+  return(out)
+}
+
+
 split_coef <- function(x, formula){
   # Initialize list
   out.lst <- list(coefs_a = NULL, coefs_b = NULL, coefs_c = NULL, coefs_d = NULL, coefs_e = NULL,
@@ -164,8 +217,6 @@ naming_state <- function(names, K) {
   }
   return(tmp)
 }
-
-
 
 #' split_naming
 #'
