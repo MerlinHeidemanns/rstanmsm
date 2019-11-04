@@ -157,12 +157,12 @@ split_coef <- function(x, formula){
 #' @param x A named vector of coefficients or standard errors
 #'
 
-split_naming <- function(x, names_list, N, K){
+split_naming <- function(x, names_list, N, K, shared_TP = TRUE){
 
   out.lst <- list(init_prob = NULL, tp = NULL, intercept = NULL, AR1 = NULL, alpha = NULL,
                   beta = NULL, gamma = NULL, delta = NULL, lambda = NULL)
-  init_prob <- x[1:(N * K)]
-  tp <- x[(N * K + 1): (N * K + K * K)]
+  init_prob <- x[grepl("pi1\\[.+", names(x))]
+  tp <- x[grepl("A\\[[0-9]+,[0-9]+,[0-9]+\\]", names(x))]
   intercept <- rep("Intercept", K)
   AR1 <- rep("AR1", K)
   for (i in 1:K){
@@ -174,24 +174,33 @@ split_naming <- function(x, names_list, N, K){
   names(mu) <- intercept
   names(phi) <- AR1
 
+  # alphs
   alpha <- x[grepl("^alpha", names(x))]
-  names(alpha) <- names_list[["alpha"]]
-  beta <- x[grepl("beta", names(x))]
-  beta.names <- c()
-  for (j in names_list[["beta"]]) {
-    for (i in 1:K){
-      beta.names <- c(beta.names, paste0("S", i, "_", j))
-    }
+  if (length(alpha) == 0){
+    alpha <- NULL
+  } else {
+    names(alpha) <- names_list[["alpha"]]
   }
-  names(beta) <- beta.names
-
+  # beta
+  beta <- x[grepl("beta", names(x))]
+  if (length(beta) == 0){
+    beta <- NULL
+  } else {
+    beta.names <- c()
+    for (j in names_list[["beta"]]) {
+      for (i in 1:K){
+        beta.names <- c(beta.names, paste0("S", i, "_", j))
+      }
+    }
+    names(beta) <- beta.names
+  }
   # out.lst para
   out.lst$init_prob <- init_prob
   out.lst$tp <- tp
   out.lst$intercept <- mu
   out.lst$AR1 <- phi
-  out.lst$alpha <- alpha
-  out.lst$beta <- beta
+  out.lst$alpha <- if (is.null(alpha)) NULL else alpha
+  out.lst$beta <- if (is.null(beta)) NULL else beta
 
   # return
   return(out.lst)
@@ -227,6 +236,21 @@ default_stan_control <- function (adapt_delta = NULL, max_treedepth = 15L) {
         adapt_delta <- 0.95
     }
     nlist(adapt_delta, max_treedepth)
+}
+
+
+#' pars_include
+#'
+#' Set parameters to include in output.
+
+pars_include <- function(Mx_a = 0, Mx_b = 0, Mx_c = 0, Mx_d = 0, Mx_e = 0){
+  pars <- c()
+  if (Mx_a == 0) pars <- c(pars, "gamma")
+  if (Mx_b == 0) pars <- c(pars, "delta")
+  if (Mx_c == 0) pars <- c(pars, "lambda")
+  if (Mx_d == 0) pars <- c(pars, "alpha")
+  if (Mx_e == 0) pars <- c(pars, "beta")
+  return(pars)
 }
 
 #' set_sampling_args
