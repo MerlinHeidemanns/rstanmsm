@@ -37,7 +37,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
                                     formula_continuous = formula_continuous) # parse the formula
 
     # check data for inclusion
-    check_data(data = data, order_continuous = order_continuous, n_var = n, t_var = t)
+    check_data(data = data, order_continuous = order_continuous, parsed_formula = parsed_formula, n_var = n, t_var = t)
 
 
     data <- data_split(data = data, tvtp = FALSE, parsed_formula = parsed_formula, n = n, t = t)

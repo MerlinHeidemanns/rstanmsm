@@ -145,12 +145,12 @@ check_data <- function(data, order_continuous, parsed_formula, n_var, t_var){
   # check for n and t
   .check_nt(names_dta = names_dta, n_var = n_var, t_var = t_var)
   # check for order predictor
-  .check_order(names_dta = parsed_formula$e, order_continuous = order_continous, has_intercept = parsed_formula$has_intercept)
+  .check_order(names_dta = parsed_formula$e, order_continuous = order_continuous, has_intercept = parsed_formula$has_intercept)
 }
 
 
 .check_order <- function(names_dta, order_continuous, has_intercept){
-  cnd1 <- !(any(grepl(order_continuous, names_data) == TRUE))
+  cnd1 <- !(any(grepl(order_continuous, names_dta)) == TRUE)
   cnd2 <- !(grepl("Intercept", order_continuous) & (has_intercept[2] == 1))
   if (cnd1 & cnd2) {
     stop("Predictors that are supposed to be ordered are not indicated as varying by state.")
@@ -177,9 +177,9 @@ check_data <- function(data, order_continuous, parsed_formula, n_var, t_var){
 #' This function creates a 0/1 vector indicating whether a particular parameter that is varying across states is ordered.
 
 create_order_vector <- function(formula, order_continuous){
-  tmp <- c("Intercept", order_continuous)
+  tmp <- c("Intercept", formula$e)
   out <- rep(0, length(tmp))
-  out[match(formula$e, tmp)] <- 1
+  out[match(order_continuous, tmp)] <- 1
   return(out)
 }
 
@@ -226,14 +226,10 @@ naming_state <- function(names, K) {
 
 split_naming <- function(x, names_list, N, K, shared_TP = TRUE){
 
-  out.lst <- list(init_prob = NULL, tp = NULL, intercept = NULL, AR1 = NULL, alpha = NULL,
+  out.lst <- list(init_prob = NULL, tp = NULL, AR1 = NULL, alpha = NULL,
                   beta = NULL, gamma = NULL, delta = NULL, lambda = NULL)
   init_prob <- x[grepl("pi1\\[.+", names(x))]
   tp <- x[grepl("A\\[[0-9]+,[0-9]+,[0-9]+\\]", names(x))]
-
-  # Intercept
-  mu <- x[grepl("mu\\[.+\\]", names(x))]  # intercept
-  names(mu) <- naming_state("Intercept", K)
 
   # AR1
   phi <- x[grepl("phi\\[.+\\]", names(x))]# ar1
@@ -250,7 +246,6 @@ split_naming <- function(x, names_list, N, K, shared_TP = TRUE){
   # out.lst para
   out.lst$init_prob <- init_prob
   out.lst$tp <- tp
-  out.lst$intercept <- mu
   out.lst$AR1 <- phi
   out.lst$alpha <- if (is.null(alpha)) NULL else alpha
   out.lst$beta <- if (is.null(beta)) NULL else beta
