@@ -8,7 +8,7 @@
 #' @export
 
 stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gaussian(),
-                     data = data, n = n, t = t, K = NULL, na.action = NULL,
+                     data = data, n = n, t = t, K = NULL, shared_TP = TRUE, na.action = NULL,
                      ... = ...,
                      prior = normal(),
                      prior_intercept = normal(),
@@ -42,7 +42,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
     has_intercept <- parsed_formula$has_intercept
     N <- max(data$n)
 
-    stanfit <- stan_msm.fit(x_e = x_e, x_d = x_d, y = y, n = n, t = t, K = K, has_intercept = has_intercept,
+    stanfit <- stan_msm.fit(x_e = x_e, x_d = x_d, y = y, n = n, t = t, K = K, has_intercept = has_intercept, shared_TP = shared_TP,
                             formula = parsed_formula, family = family, init.prior = init_prior,
                             algorithm = algorithm, iter = 1000, chains = 1)
 
