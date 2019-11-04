@@ -6,7 +6,7 @@
 \usage{
 stan_msm(formula_discrete = NULL, formula_continuous,
   family = gaussian(), data = data, n = n, t = t, K = NULL,
-  na.action = NULL, ... = ..., prior = normal(),
+  shared_TP = TRUE, na.action = NULL, ... = ..., prior = normal(),
   prior_intercept = normal(), prior_aux = exponential(),
   prior_PD = FALSE, algorithm = c("sampling", "optimizing"),
   init_prior = FALSE, adapt_delta = NULL)
