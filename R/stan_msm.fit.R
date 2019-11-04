@@ -64,7 +64,7 @@ stan_msm.fit <- function(x_e, x_d, y = y, n, t, K = 2, has_intercept = c(0, 0), 
      )
 
     # stanfit
-    stanfit <- stanmodels$msm_constant_continuous_v2 # EXCHANGE
+    stanfit <- stanmodels$msm_constant_continuous
 
     # parameters to exclude
     pars <- pars_include(Mx_d = Mx_d, Mx_e = Mx_e)
