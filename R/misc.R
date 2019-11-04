@@ -149,6 +149,22 @@ split_coef <- function(x, formula){
   return(out.lst)
 }
 
+#' state_name
+#'
+#'
+#' @param x A character vector
+#' @param K The number of states
+
+naming_state <- function(names, K) {
+  tmp <- c()
+  for (j in names){
+    for (k in seq(1, K, 1)){
+      tmp <- c(tmp, paste0("S", k, "_", j))
+    }
+  }
+  return(tmp)
+}
+
 
 
 #' split_naming
@@ -163,37 +179,23 @@ split_naming <- function(x, names_list, N, K, shared_TP = TRUE){
                   beta = NULL, gamma = NULL, delta = NULL, lambda = NULL)
   init_prob <- x[grepl("pi1\\[.+", names(x))]
   tp <- x[grepl("A\\[[0-9]+,[0-9]+,[0-9]+\\]", names(x))]
-  intercept <- rep("Intercept", K)
-  AR1 <- rep("AR1", K)
-  for (i in 1:K){
-    intercept[i] <- paste0(intercept[i], "_S", i, sep = "")
-    AR1[i] <- paste0(AR1[i], "_S", i, sep = "")
-  }
+
+  # Intercept
   mu <- x[grepl("mu\\[.+\\]", names(x))]  # intercept
+  names(mu) <- naming_state("Intercept", K)
+
+  # AR1
   phi <- x[grepl("phi\\[.+\\]", names(x))]# ar1
-  names(mu) <- intercept
-  names(phi) <- AR1
+  names(phi) <- naming_state("AR1", K)
 
   # alphs
   alpha <- x[grepl("^alpha", names(x))]
-  if (length(alpha) == 0){
-    alpha <- NULL
-  } else {
-    names(alpha) <- names_list[["alpha"]]
-  }
+  if (length(alpha) == 0){ alpha <- NULL } else { names(alpha) <- names_list[["alpha"]]}
+
   # beta
   beta <- x[grepl("beta", names(x))]
-  if (length(beta) == 0){
-    beta <- NULL
-  } else {
-    beta.names <- c()
-    for (j in names_list[["beta"]]) {
-      for (i in 1:K){
-        beta.names <- c(beta.names, paste0("S", i, "_", j))
-      }
-    }
-    names(beta) <- beta.names
-  }
+  if (length(beta) == 0){beta <- NULL} else {names(beta) <- naming_state(names_list[["beta"]], K)}
+
   # out.lst para
   out.lst$init_prob <- init_prob
   out.lst$tp <- tp
@@ -205,6 +207,7 @@ split_naming <- function(x, names_list, N, K, shared_TP = TRUE){
   # return
   return(out.lst)
 }
+
 
 #' naming_fun
 #'

@@ -15,3 +15,8 @@ test_that("Named output of correct length", {
   expect_equal(naming_fun(x = x, para_names = para_names)[6:16], x[6:16])
   expect_equal(naming_fun(x = x, para_names = para_names)[4], names(para_names$alpha))
 })
+
+# naming_states
+test_that("Names are state-specific", {
+  expect_equal(naming_state(c("x_e1", "x_e2"), 2), c("S1_x_e1", "S2_x_e1", "S1_x_e2", "S2_x_e2"))
+})
