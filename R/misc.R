@@ -12,8 +12,8 @@
 
 .sort_predictor <- function(x){
   out.lst <- list(base = NULL, state = NULL, state.state = NULL, all.var = NULL)
-  if (grepl("#", x)){
-    tmp <- strsplit(x, "#")[[1]]; tmp <- sort(tmp); tmp <- c(tmp, paste(tmp[1], tmp[2], sep = ":"))
+  if (grepl("\\*", x)){
+    tmp <- strsplit(x, "\\*")[[1]]; tmp <- sort(tmp); tmp <- c(tmp, paste(tmp[1], tmp[2], sep = ":"))
   } else if (grepl(":", x)){
     tmp <- strsplit(x, ":")[[1]]; tmp <- sort(tmp); tmp <- paste(tmp[1], tmp[2], sep = ":")
   } else {
@@ -27,7 +27,7 @@
     } else {
       out.lst$base <- c(out.lst$base, j)
     }
-    if (!grepl("#", j)){
+    if (!grepl("\\*", j)){
       if (grepl(":", j)){
         out.lst$all.var <- c(out.lst$all.var, gsub("\\|2|\\|3", "", strsplit(j, ":")[[1]]))
       } else {
