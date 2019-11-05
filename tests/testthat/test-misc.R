@@ -53,4 +53,28 @@ test_that("Creation of the order vector", {
 
 # two intercepts in continuous?
 
+context("Formula")
+
+#test_that("Lagged predictors",{
+#  formula_discrete = NULL; formula_continuous = "y ~ L(y, -1)"
+#  expect_equal(formula_parse(formula_discrete, formula_continuous), list(a = NULL, b = NULL, c = NULL, d = c("x1:x2"), e = NULL))
+#})
+
+
+test_that("Interaction effects", {
+  expect_equal(formula_parse(NULL, "y ~ x1:x2"), list(y = "y", d = c("x1:x2") , has_intercept = rep(0, 5), all.var = c("x1", "x2", "y")))
+  expect_equal(formula_parse(NULL, "y ~ x1#x2"), list(y = "y", d = c("x1", "x2", "x1:x2"), has_intercept = rep(0, 5), all.var = c("x1", "x2", "y") ))
+  expect_equal(formula_parse(NULL, "y ~ x1|2#x2"), list(y = "y", d = c("x2"), e = c("x1", "x1:x2"), has_intercept = rep(0, 5), all.var = c("x1", "x2", "y")))
+  expect_equal(formula_parse(NULL, "y ~ x1|2#x2|2"), list(y = "y", e = c("x1", "x2", "x1:x2"), has_intercept = rep(0, 5), all.var = c("x1", "x2", "y")))
+  expect_equal(formula_parse(NULL, "y ~ x2 + x3 + x4 + x4:x3|2"), list(y = "y", d = c("x2", "x3", "x4"), e = c("x3:x4"), has_intercept = rep(0, 5), all.var = c("x2", "x3", "x4", "y")))
+  expect_equal(formula_parse(NULL, "y ~ x2:x3 + x2:x3"), list(y = "y", d = c("x2:x3"), has_intercept = rep(0, 5), all.var = c("x2", "x3", "y")))
+  expect_equal(formula_parse(NULL, "y ~ 1 + x2#x3 + x3:x2"), list(y = "y", d = c("x2", "x3", "x2:x3"), has_intercept = c(1, 0, 0, 0, 0), all.var = c("x2", "x3", "y")))
+})
+
+test_that("Interactions created",{
+  data <- as.data.frame(matrix(rnorm(10), ncol = 2, nrow = 5)); colnames(data) <- c("x1", "x2");formula <- list(a = c("x1:x2", "x1"))
+  expect_equal(.create_interactions(data = data, formula = formula)[,3], data$x1 * data$x2)
+})
+
+
 

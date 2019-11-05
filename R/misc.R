@@ -3,80 +3,99 @@
 #'
 #' Parses the formulas into their components and stores them in a list
 
+
+.split_formula <- function(x){
+  x <- gsub("\\s", "", x)
+  x <- unique(strsplit(x, split = "~|\\+" )[[1]])
+  return(x)
+}
+
+.sort_predictor <- function(x){
+  out.lst <- list(base = NULL, state = NULL, state.state = NULL, all.var = NULL)
+  if (grepl("#", x)){
+    tmp <- strsplit(x, "#")[[1]]; tmp <- sort(tmp); tmp <- c(tmp, paste(tmp[1], tmp[2], sep = ":"))
+  } else if (grepl(":", x)){
+    tmp <- strsplit(x, ":")[[1]]; tmp <- sort(tmp); tmp <- paste(tmp[1], tmp[2], sep = ":")
+  } else {
+    tmp <- x
+  }
+  for (j in tmp){
+    if (grepl("\\|3", j)){
+      out.lst$state.state <- c(out.lst$state.state, gsub("\\|3|\\|2", "", j))
+    } else if (grepl("\\|2", j)){
+      out.lst$state <- c(out.lst$state, gsub("\\|2", "", j))
+    } else {
+      out.lst$base <- c(out.lst$base, j)
+    }
+    if (!grepl("#", j)){
+      if (grepl(":", j)){
+        out.lst$all.var <- c(out.lst$all.var, gsub("\\|2|\\|3", "", strsplit(j, ":")[[1]]))
+      } else {
+      out.lst$all.var <- c(out.lst$all.var, gsub("\\|2|\\|3", "", j))
+      }
+    }
+  }
+  out.lst$all.var <- unique(out.lst$all.var)
+  return(out.lst)
+}
+
 formula_parse <- function(formula_discrete = NULL, formula_continuous = formula_continuous) {
 
   int_pattern <- "(^1$)|(^1\\|2$)|(^1\\|3$)"
 
   # out list
-  out.lst <- list(y = NULL,
-                   a = NULL,
-                   b = NULL,
-                   c = NULL,
-                   d = NULL,
-                   e = NULL,
-                   has_intercept = rep(0, 5), # a OR b and c OR d OR e
-                   all.var = NULL)
+  out.lst <- list(y = NULL, a = NULL, b = NULL, c = NULL, d = NULL, e = NULL,
+                   has_intercept = rep(0, 5), all.var = NULL)
+
+  # containers
+  tmp.d.a <- tmp.d.b <- tmp.d.c <- tmp.c.d <- tmp.c.e <- tmp.all.var <- c()
+  has_intercept <- rep(0, 5)
 
   # formula continuous
-  tmp.c <- formula_continuous
-  tmp.c <- gsub("\\s", "", tmp.c)
-  tmp.c <- unique(strsplit(tmp.c, split = "~|\\+" )[[1]])
-  tmp.c.d <- c()
-  tmp.c.e <- c()
+  tmp.c <- .split_formula(formula_continuous)
   for (i in tmp.c[2:length(tmp.c)]){
     if (grepl(int_pattern, i)){
-      if (grepl("\\|2", i)){
-        out.lst$has_intercept[2] <- 1
-      } else {
-        out.lst$has_intercept[1] <- 1
-      }
-    } else if (grepl("\\|2", i)){
-      tmp.var <- i
-      tmp.var <- gsub("\\|2", "", tmp.var)
-      tmp.c.e <- c(tmp.c.e, tmp.var)
+      if (grepl("\\|2", i)) {has_intercept[2] <- 1} else {has_intercept[1] <- 1}
     } else {
-      tmp.c.d <- c(tmp.c.d, i)
+      out <- .sort_predictor(i)
+      tmp.c.d <- c(tmp.c.d, out$base)
+      tmp.c.e <- c(tmp.c.e, out$state)
+      tmp.all.var <- c(tmp.all.var, out$all.var)
     }
   }
-  out.lst$all.var <- c(out.lst$all.var, tmp.c.d, tmp.c.e)
-  out.lst$y <- tmp.c[1]; out.lst$d <- tmp.c.d; out.lst$e <- tmp.c.e
+
   # formula discrete
   if (!is.null(formula_discrete)){
-    tmp.d <- formula_discrete
-    tmp.d <- gsub("\\s", "", tmp.d)
-    tmp.d <- unique(strsplit(tmp.d, split = "~|\\+" )[[1]])
-    tmp.d.a <- NULL
-    tmp.d.b <- NULL
-    tmp.d.c <- NULL
+    tmp.d <- .split_formula(formula_discrete)
     for (i in tmp.d){
       if (grepl(int_pattern, i)){
         if (grepl("\\|3", i)){
-          out.lst$has_intercept[5] <- 1
+          has_intercept[5] <- 1
         } else if (grepl("\\|2", i)){
-          out.lst$has_intercept[4] <- 1
+          has_intercept[4] <- 1
         } else {
-          out.lst$has_intercept[3] <- 1
+          has_intercept[3] <- 1
         }
-      } else if (grepl("\\|3", i)){
-        tmp.var <- i
-        tmp.var <- gsub("\\|3", "", tmp.var)
-        tmp.d.c <- c(tmp.d.c, tmp.var)
-      } else if (grepl("\\|2", i)){
-        tmp.var <- i
-        tmp.var <- gsub("\\|2", "", tmp.var)
-        tmp.d.b <- c(tmp.d.b, tmp.var)
       } else {
-        tmp.d.a <- c(tmp.d.a, i)
+        out <- .sort_predictor(i)
+        tmp.d.a <- c(tmp.d.a, out$base)
+        tmp.d.b <- c(tmp.d.b, out$state)
+        tmp.d.c <- c(tmp.d.c, out$state.state)
+        tmp.all.var <- c(tmp.all.var, out$all.var)
       }
     }
-    out.lst$a = tmp.d.a
-    out.lst$b = tmp.d.b
-    out.lst$c = tmp.d.c
-    out.lst$all.var <- c(out.lst$all.var, tmp.d.a, tmp.d.b, tmp.d.c)
   }
+  out.lst$a <- unique(tmp.d.a)
+  out.lst$b <- unique(tmp.d.b)
+  out.lst$c <- unique(tmp.d.c)
+  out.lst$d <- unique(tmp.c.d)
+  out.lst$e <- unique(tmp.c.e)
+  out.lst$y <- tmp.c[1]
+  out.lst$has_intercept <- has_intercept
+  out.lst$all.var <- unique(c(tmp.all.var, tmp.c[1]))
   return(out.lst)
 }
-
+formula_parse(NULL, "y ~ 1 + x2#x3 + x3:x2")
 
 
 # data_check
@@ -101,6 +120,23 @@ data_check <- function(data = data, par = par) {
 # @tvtp TRUE/FALSE Indicator for whether the function includes time-varying transition probabilities.
 # @parsed_formula A parsed formula, i.e. a list object supplied by formula_parse
 
+.create_interactions <- function(data, formula){
+  seq.types <- c("a", "b", "c", "d", "e")
+  for (i in seq.types){
+    int <- formula[[i]][grepl(":", formula[[i]])]
+    for (j in int){
+      tmp <- strsplit(j, split = ":")[[1]]
+      tmp <- data[, tmp[1]] * data[, tmp[2]]
+      data <- cbind(data, tmp)
+      colnames(data)[ncol(data)] <- j
+    }
+  }
+  return(data)
+}
+data <- as.data.frame(matrix(rnorm(10), ncol = 2, nrow = 5)); colnames(data) <- c("x1", "x2")
+formula <- list(a = c("x1:x2", "x1"))
+.create_interactions(data = data, formula = formula)
+
 data_split <- function(data = data, tvtp = FALSE, parsed_formula = parsed_formula, n = NULL, t = NULL) {
 
   # initialize output list
@@ -109,19 +145,19 @@ data_split <- function(data = data, tvtp = FALSE, parsed_formula = parsed_formul
     data <- as.data.frame(data)
   }
   names_data <- colnames(data)
-  if (is.element(n, names_data) & is.element(t, names_data)){
-    data <- data[order(data$n, data$t),]
-  } else {
-    stop("Please supply indexes for n and t.")
-  }
+  data <- data[order(data$n, data$t),]
+
+  # create interactions
+  data <- .create_interactions(data = data, formula = parsed_formula)
+
   if (tvtp) {
     out.lst$a <- data[, parsed_formula$a]
     out.lst$b <- data[, parsed_formula$b]
     out.lst$c <- data[, parsed_formula$c]
-  } else {
-    out.lst$d <- data[, parsed_formula$d]
-    out.lst$e <- data[, parsed_formula$e]
   }
+
+  out.lst$d <- data[, parsed_formula$d]
+  out.lst$e <- data[, parsed_formula$e]
 
   out.lst$y <- data[ , parsed_formula$y]
   out.lst$n <- data[ , n]
