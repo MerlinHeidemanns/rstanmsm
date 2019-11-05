@@ -58,7 +58,8 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
     fit <- list(stanfit = stanfit, algorithm = algorithm, family = family,
                  data = data, y = y, x = list(x_d = x_d, x_e = x_e), N = N, K = K,
                  stan_function = "stan_msm", model = mf, parsed_formula = parsed_formula,
-                formula_discrete = formula_discrete, formula_continuous = formula_continuous,
+                 formula_discrete = formula_discrete, formula_continuous = formula_continuous,
+                 order_continuous = order_continuous, shared_TP = shared_TP,
                  call = call)
 
     out <- stanreg(fit)

@@ -146,6 +146,8 @@ check_data <- function(data, order_continuous, parsed_formula, n_var, t_var){
   .check_nt(names_dta = names_dta, n_var = n_var, t_var = t_var)
   # check for order predictor
   .check_order(names_dta = parsed_formula$e, order_continuous = order_continuous, has_intercept = parsed_formula$has_intercept)
+  # check intercept
+  .check_intercept(names_dta = names_dta, parsed_formula = parsed_formula)
 }
 
 
@@ -169,6 +171,12 @@ check_data <- function(data, order_continuous, parsed_formula, n_var, t_var){
   }
 }
 
+.check_intercept <- function(names_dta, parsed_formula){
+  if ((sum(parsed_formula$has_intercept[1:2]) >= 1) & (grepl("Intercept", names_dta))){
+    stop("Please specify the intercept via 1 +.")
+  }
+}
+
 #' create_order_vector
 #'
 #' @param formula The formula list
@@ -177,7 +185,8 @@ check_data <- function(data, order_continuous, parsed_formula, n_var, t_var){
 #' This function creates a 0/1 vector indicating whether a particular parameter that is varying across states is ordered.
 
 create_order_vector <- function(formula, order_continuous){
-  tmp <- c("Intercept", formula$e)
+  intercept <- if (formula$has_intercept[2] == 1) "Intercept" else NULL
+  tmp <- c(intercept, formula$e)
   out <- rep(0, length(tmp))
   out[match(order_continuous, tmp)] <- 1
   return(out)

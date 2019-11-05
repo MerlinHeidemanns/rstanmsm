@@ -20,3 +20,37 @@ test_that("Named output of correct length", {
 test_that("Names are state-specific", {
   expect_equal(naming_state(c("x_e1", "x_e2"), 2), c("S1_x_e1", "S2_x_e1", "S1_x_e2", "S2_x_e2"))
 })
+
+# check n and t
+test_that("N and T check", {
+  names_dta <- c("a", "n", "t"); n_var <- "N"; t_var <- "t"
+  expect_error(.check_nt(names_dta = names_dta, n_var = n_var, t_var = t_var), "Please supply indexes for n and t.")
+})
+
+# inclusion check
+test_that("Inclusion check", {
+  names_dta <- c("var1", "var2", "var3", "var4"); parsed_formula <- list(all.var = c("var5", "var4"))
+  expect_error(.check_inclusion(names_dta = names_dta, parsed_formula = parsed_formula), "The predictor var5 has not been found in the data.")
+})
+
+# intercept check
+test_that("Intercept detected", {
+  names_dta <- "Intercept"; parsed_formula <- list(has_intercept = c(0, 1))
+  expect_error(.check_intercept(names_dta = names_dta, parsed_formula = parsed_formula), "Please specify the intercept via 1 +.")
+})
+
+# create_order_vector
+test_that("Creation of the order vector", {
+  formula <- list(e = NULL, has_intercept = c(0, 0)); order_continuous = NULL
+  expect_equal(length(create_order_vector(formula, order_continuous)), 0)
+  formula <- list(e = rep("a", 20), has_intercept = c(0, 1)); order_continuous = NULL
+  expect_equal(length(create_order_vector(formula, order_continuous)), 21)
+  formula <- list(e = rep("Intercept", 2), has_intercept = c(0, 1)); order_continuous = c("Intercept")
+  expect_equal(sum(create_order_vector(formula, order_continuous)), 1)
+})
+
+
+
+# two intercepts in continuous?
+
+
