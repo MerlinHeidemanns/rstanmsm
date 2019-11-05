@@ -2,7 +2,8 @@
 
 
 
-stan_msm.fit <- function(x_e, x_d, y = y, n, t, K = 2, has_intercept = c(0, 0), shared_TP = TRUE,
+stan_msm.fit <- function(x_e, x_d, y = y, n, t, K = 2, has_intercept = rep(0, 5),
+                         shared_TP = TRUE, order_continuous,
                          formula = parsed_formula, family = gaussian(), init.prior = TRUE,
                          algorithm = c("optimizing", "sampling"), ... = ...){
 
@@ -25,6 +26,9 @@ stan_msm.fit <- function(x_e, x_d, y = y, n, t, K = 2, has_intercept = c(0, 0), 
     if (Mx_d == 0){
       x_d <- matrix(0, ncol = 0, nrow = NT)
     }
+
+    # order vector
+    order_x_e <- create_order_vector(formula, order_continuous)
 
     # family
     family <- validate_family(family)
@@ -60,11 +64,12 @@ stan_msm.fit <- function(x_e, x_d, y = y, n, t, K = 2, has_intercept = c(0, 0), 
        x_e = x_e,
        y = y,
        has_intercept = has_intercept,
-       shared_TP = shared_TP
+       shared_TP = shared_TP,
+       order_x_e = order_x_e
      )
 
     # stanfit
-    stanfit <- stanmodels$msm_constant_continuous_v2 # EXCHANGE
+    stanfit <- stanmodels$msm_constant_continuous_v2
 
     # parameters to exclude
     pars <- pars_include(Mx_d = Mx_d, Mx_e = Mx_e)
@@ -91,8 +96,7 @@ stan_msm.fit <- function(x_e, x_d, y = y, n, t, K = 2, has_intercept = c(0, 0), 
       init = "random"
     }
 
-
-
+    # execution
     if (algorithm == "optimizing") {
       optimizing_args <- list(...)
       if (is.null(optimizing_args$draws)) optimizing_args$draws <- 1000L

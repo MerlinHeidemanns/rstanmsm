@@ -8,7 +8,7 @@ formula_parse <- function(formula_discrete = NULL, formula_continuous = formula_
   int_pattern <- "(^1$)|(^1\\|2$)|(^1\\|3$)"
 
   # out list
-  out.lst <- nlist(y = NULL,
+  out.lst <- list(y = NULL,
                    a = NULL,
                    b = NULL,
                    c = NULL,
@@ -131,6 +131,68 @@ data_split <- function(data = data, tvtp = FALSE, parsed_formula = parsed_formul
 }
 
 
+
+
+#' check_order
+#'
+#' @param data Included data frame
+#' @param order_continuous Vector of parameter names declared to be continuous
+
+check_data <- function(data, order_continuous, parsed_formula, n_var, t_var){
+  names_dta <- colnames(data)
+  # check inclusion
+  .check_inclusion(names_dta, parsed_formula = parsed_formula)
+  # check for n and t
+  .check_nt(names_dta = names_dta, n_var = n_var, t_var = t_var)
+  # check for order predictor
+  .check_order(names_dta = parsed_formula$e, order_continuous = order_continuous, has_intercept = parsed_formula$has_intercept)
+  # check intercept
+  .check_intercept(names_dta = names_dta, parsed_formula = parsed_formula)
+}
+
+
+.check_order <- function(names_dta, order_continuous, has_intercept){
+  cnd1 <- !(all(is.element(order_continuous, names_dta)))
+  cnd2 <- !(is.element("Intercept", order_continuous) & (has_intercept[2] == 1))
+  if ((cnd1) & (cnd2)) {
+    stop("Predictors that are supposed to be ordered are not indicated as varying by state.")
+  }
+}
+
+.check_nt <- function(names_dta, n_var, t_var){
+  if (!(is.element(n_var, names_dta) & is.element(t_var, names_dta))){
+    stop("Please supply indexes for n and t.")
+  }
+}
+
+.check_inclusion <- function(names_dta, parsed_formula){
+  for (i in parsed_formula$all.var){
+    if (!is.element(i, names_dta)) stop(paste0("The predictor ", i, " has not been found in the data."))
+  }
+}
+
+.check_intercept <- function(names_dta, parsed_formula){
+  if ((sum(parsed_formula$has_intercept[1:2]) >= 1) & (grepl("Intercept", names_dta))){
+    stop("Please specify the intercept via 1 +.")
+  }
+}
+
+#' create_order_vector
+#'
+#' @param formula The formula list
+#' @param order_continuous A character vector indicating which parameters are ordered.
+#'
+#' This function creates a 0/1 vector indicating whether a particular parameter that is varying across states is ordered.
+
+create_order_vector <- function(formula, order_continuous){
+  intercept <- if (formula$has_intercept[2] == 1) "Intercept" else NULL
+  tmp <- c(intercept, formula$e)
+  out <- rep(0, length(tmp))
+  out[match(order_continuous, tmp)] <- 1
+  return(out)
+}
+
+
 split_coef <- function(x, formula){
   # Initialize list
   out.lst <- list(coefs_a = NULL, coefs_b = NULL, coefs_c = NULL, coefs_d = NULL, coefs_e = NULL,
@@ -149,7 +211,21 @@ split_coef <- function(x, formula){
   return(out.lst)
 }
 
+#' state_name
+#'
+#'
+#' @param x A character vector
+#' @param K The number of states
 
+naming_state <- function(names, K) {
+  tmp <- c()
+  for (j in names){
+    for (k in seq(1, K, 1)){
+      tmp <- c(tmp, paste0("S", k, "_", j))
+    }
+  }
+  return(tmp)
+}
 
 #' split_naming
 #'
@@ -159,45 +235,26 @@ split_coef <- function(x, formula){
 
 split_naming <- function(x, names_list, N, K, shared_TP = TRUE){
 
-  out.lst <- list(init_prob = NULL, tp = NULL, intercept = NULL, AR1 = NULL, alpha = NULL,
+  out.lst <- list(init_prob = NULL, tp = NULL, AR1 = NULL, alpha = NULL,
                   beta = NULL, gamma = NULL, delta = NULL, lambda = NULL)
   init_prob <- x[grepl("pi1\\[.+", names(x))]
   tp <- x[grepl("A\\[[0-9]+,[0-9]+,[0-9]+\\]", names(x))]
-  intercept <- rep("Intercept", K)
-  AR1 <- rep("AR1", K)
-  for (i in 1:K){
-    intercept[i] <- paste0(intercept[i], "_S", i, sep = "")
-    AR1[i] <- paste0(AR1[i], "_S", i, sep = "")
-  }
-  mu <- x[grepl("mu\\[.+\\]", names(x))]  # intercept
+
+  # AR1
   phi <- x[grepl("phi\\[.+\\]", names(x))]# ar1
-  names(mu) <- intercept
-  names(phi) <- AR1
+  names(phi) <- naming_state("AR1", K)
 
   # alphs
   alpha <- x[grepl("^alpha", names(x))]
-  if (length(alpha) == 0){
-    alpha <- NULL
-  } else {
-    names(alpha) <- names_list[["alpha"]]
-  }
+  if (length(alpha) == 0){ alpha <- NULL } else { names(alpha) <- names_list[["alpha"]]}
+
   # beta
   beta <- x[grepl("beta", names(x))]
-  if (length(beta) == 0){
-    beta <- NULL
-  } else {
-    beta.names <- c()
-    for (j in names_list[["beta"]]) {
-      for (i in 1:K){
-        beta.names <- c(beta.names, paste0("S", i, "_", j))
-      }
-    }
-    names(beta) <- beta.names
-  }
+  if (length(beta) == 0){beta <- NULL} else {names(beta) <- naming_state(names_list[["beta"]], K)}
+
   # out.lst para
   out.lst$init_prob <- init_prob
   out.lst$tp <- tp
-  out.lst$intercept <- mu
   out.lst$AR1 <- phi
   out.lst$alpha <- if (is.null(alpha)) NULL else alpha
   out.lst$beta <- if (is.null(beta)) NULL else beta
@@ -205,6 +262,7 @@ split_naming <- function(x, names_list, N, K, shared_TP = TRUE){
   # return
   return(out.lst)
 }
+
 
 #' naming_fun
 #'
