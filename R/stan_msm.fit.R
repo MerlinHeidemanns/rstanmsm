@@ -49,6 +49,8 @@ stan_msm.fit <- function(x_e, x_d, y = y, n, t, K = 2, has_intercept = rep(0, 5)
       alpha = formula$d,
       beta = formula$e
     )
+    if (has_intercept[1] == 1) names_list$alpha <- c("Intercept", names_list$alpha)
+    if (has_intercept[2] == 1) names_list$beta <- c("Intercept", names_list$beta)
 
 
     # standata

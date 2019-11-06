@@ -95,7 +95,6 @@ formula_parse <- function(formula_discrete = NULL, formula_continuous = formula_
   out.lst$all.var <- unique(c(tmp.all.var, tmp.c[1]))
   return(out.lst)
 }
-formula_parse(NULL, "y ~ 1 + x2#x3 + x3:x2")
 
 
 # data_check
@@ -315,9 +314,23 @@ naming_fun <- function(x, para_names){
 }
 
 
+#' names_list_
 
+naming_list <- function(x){
+  out.lst <- list(alpha = NULL, beta = NULL, gamma = NULL, delta = NULL, lambda = NULL)
+  if (x$has_intercept[1]) out.lst$alpha <- c("Intercept")
+  if (x$has_intercept[2]) out.lst$beta <- c("Intercept")
+  if (x$has_intercept[3]) out.lst$gamma <- c("Intercept")
+  if (x$has_intercept[4]) out.lst$delta <- c("Intercept")
+  if (x$has_intercept[5]) out.lst$lambda <- c("Intercept")
 
-
+  if (length(x[["d"]]) != 0) out.lst$alpha <- c(out.lst$alpha, x[["d"]])
+  if (length(x[["e"]]) != 0) out.lst$beta <- c(out.lst$beta, x[["e"]])
+  if (length(x[["a"]]) != 0) out.lst$gamma <- c(out.lst$gamma, x[["a"]])
+  if (length(x[["b"]]) != 0) out.lst$delta <- c(out.lst$delta, x[["b"]])
+  if (length(x[["c"]]) != 0) out.lst$lambda <- c(out.lst$lambda, x[["c"]])
+  return(out.lst)
+}
 
 #' default_stan_control
 #'
@@ -338,7 +351,7 @@ default_stan_control <- function (adapt_delta = NULL, max_treedepth = 15L) {
 #' Set parameters to include in output.
 
 pars_include <- function(Mx_a = 0, Mx_b = 0, Mx_c = 0, Mx_d = 0, Mx_e = 0){
-  pars <- c()
+  pars <- c("beta_un", "beta_ord")
   if (Mx_a == 0) pars <- c(pars, "gamma")
   if (Mx_b == 0) pars <- c(pars, "delta")
   if (Mx_c == 0) pars <- c(pars, "lambda")
@@ -484,49 +497,6 @@ deparse_call_formula <- function(x){
 
 
 
-
-
-
-# return.coef
-#
-# Return coefficients from Stan fit
-#
-# @param fit_extract: A list object from rstan::extract(fit)
-# @param names_list: A list object referencing the variable names associated with the greek letters used in the Stan code
-
-return.coef <- function(fit_extract = fit_extract, names_list = names_list){
-  # initialize output mat
-  coefficients <- matrix(NA, ncol = 3, nrow = 0)
-  colnames(coefficients) <- c("state", "median", "MAD_sd")
-  names_par <- c("gamma", "lambda" , "beta", "alpha", "mu", "phi")
-
-  # extract coef of interest
-  for (i in names_par){
-    if (!is.null(fit_extract[[i]])){
-      tmp <- fit_extract[[i]]
-      tmp.names <- names_list[[i]]
-      dim2 <- dim(tmp)[2]
-      dim3 <- dim(tmp)[3]
-      if (!is.na(dim3)){
-        for (j in 1:dim2){
-          for (q in 1:dim3){
-            tmp.mat <- matrix(c(q, mean(tmp[ , j, q]), MAD_sd(tmp[ , j, q])), ncol = 3, nrow = 1)
-            rownames(tmp.mat) <- paste0("S", q , "_", tmp.names[j], sep = "")
-            coefficients <- rbind(coefficients, tmp.mat)
-          }
-        }
-      } else {
-        for (j in 1:dim2){
-          tmp.mat <- matrix(c(0, mean(tmp[, j]), MAD_sd(tmp[, j])), ncol = 3, nrow = 1)
-          rownames(tmp.mat) <- paste0("Sall_", tmp.names[j], sep = "")
-          coefficients <- rbind(coefficients, tmp.mat)
-        }
-      }
-    }
-  }
-  # return
-  return(coefficients)
-}
 
 
 # MAD_sd

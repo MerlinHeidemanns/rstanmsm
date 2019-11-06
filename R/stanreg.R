@@ -14,11 +14,7 @@ stanreg <- function(object) {
   K <- object$K
   T <- object$T
   parsed_formula <- object$parsed_formula
-  names_list <- list(alpha = parsed_formula$d,
-                     beta = parsed_formula$e,
-                     gamma = parsed_formula$a,
-                     delta = parsed_formula$b,
-                     lambda = parsed_formula$c)
+  names_list <- naming_list(parsed_formula)
 
   nvars <- list(nvars_a = ncol(x$x_a), nvars_b = ncol(x$x_b),
                 nvars_c = ncol(x$x_c), nvars_d = ncol(x$x_d),

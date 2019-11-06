@@ -60,9 +60,9 @@ parameters {
 }
 
 transformed parameters {
+  matrix[Mx_e_, K] beta;
   vector[K] logalpha[T, N];
   // create beta matrix from components
-  matrix[Mx_e_, K] beta;
   {
     int count_ordered = 1;
     int count_unordered = 1;
@@ -119,8 +119,11 @@ model {
   }
   target += normal_lpdf(alpha | 0, 2);
   for (i in 1:K){
-    target += normal_lpdf(beta[:,i] | 0, 2);
+    target += normal_lpdf(beta_un[:,i] | 0, 2);
+    target += normal_lpdf(beta_ord[:,i] | 0, 2);
   }
+
+
 
   // likelihood
   for (n in 1:N){
