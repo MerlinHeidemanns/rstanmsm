@@ -22,6 +22,10 @@ data {
 
   // shared
   int shared_TP;                       // 0: individual, 1: shared
+
+  // ordering
+  int order_x_e[Mx_e + has_intercept[2]]; // 0: unordered, 1: ordered
+
 }
 
 transformed data {
@@ -33,7 +37,12 @@ transformed data {
   matrix[NT, Mx_e_] x_e_ = has_intercept[2] ? append_col(rep_vector(1.0, NT), x_e):
                                              (Mx_e == 0       ? rep_matrix(0.0, NT, 1) : x_e);
 
+  // shared_TP
   int N_ = shared_TP ? 1 : N;
+
+  // ordereing on x_e
+  int Mx_e_un = Mx_e_ - sum(order_x_e);
+  int Mx_e_ord = sum(order_x_e);
 }
 
 parameters {
@@ -42,16 +51,29 @@ parameters {
   simplex[K] A[N_, K];              // tvtp coefficient (only initialization)
 
   // Continuous observation model
-  ordered[K] mu;                     // observation means
   ordered[K] phi;                    // observation AR
   vector[Mx_d_] alpha;                 // continuous observation model coefficients
-  matrix[Mx_e_, K] beta;            // continuous observation model coefficients
+    // ordering
+  vector[K] beta_un[Mx_e_un];
+  ordered[K] beta_ord[Mx_e_ord];
   real<lower=0> sigma;               // observation standard deviations
 }
 
 transformed parameters {
+  matrix[Mx_e_, K] beta;
   vector[K] logalpha[T, N];
-
+  // create beta matrix from components
+  {
+    int count_ordered = 1;
+    int count_unordered = 1;
+    for (m in 1:Mx_e_){
+      if (order_x_e[m]) {
+        beta[m] = beta_ord[count_ordered]'; count_ordered += 1;
+      } else {
+        beta[m] = beta_un[count_unordered]'; count_unordered += 1;
+      }
+    }
+  }
   { // Forward algorithm log p(z_t = j | x_{1:t})
   // logalpha[t, j] = Pr(z_t = j| x_{1:t})
   // logalpha[t-1, i] = Pr(z_t = i| x_{1:t-1})
@@ -60,7 +82,9 @@ transformed parameters {
     for (nn in 1:N){
       int nn_ = shared_TP ? 1 : nn;
       for (j in 1:K){
-        logalpha[1, nn, j] = log(pi1[nn, j]) + normal_lpdf(y[startstop[nn, 1]] | mu[j], sigma);
+        logalpha[1, nn, j] = log(pi1[nn, j]) + normal_lpdf(y[startstop[nn, 1]] |
+                                          x_d_[startstop[nn, 1]] * alpha +
+                                          x_e_[startstop[nn, 1]] * beta[:,j], sigma);
       }
       for (t in 2:T){
         for (j in 1:K) {
@@ -68,7 +92,7 @@ transformed parameters {
           for (i in 1:K) {
             accumulator[i] = logalpha[t - 1, nn, i] +
                               log(A[nn_ , i, j]) +
-                              normal_lpdf(y[startstop[nn, 1] + t - 1] | mu[j] +
+                              normal_lpdf(y[startstop[nn, 1] + t - 1] |
                                           phi[j] * y[startstop[nn, 1] + t - 2] +
                                           x_d_[startstop[nn, 1] + t - 1] * alpha +
                                           x_e_[startstop[nn, 1] + t - 1] * beta[:,j], sigma);
@@ -85,7 +109,6 @@ model {
   target += normal_lpdf(sigma | 0, 5);
 
   // structural
-  target += normal_lpdf(mu | 0, 5);
   target += normal_lpdf(phi | 0.5, 0.5);
 
   // varying
@@ -96,8 +119,11 @@ model {
   }
   target += normal_lpdf(alpha | 0, 2);
   for (i in 1:K){
-    target += normal_lpdf(beta[:,i] | 0, 2);
+    target += normal_lpdf(beta_un[:,i] | 0, 2);
+    target += normal_lpdf(beta_ord[:,i] | 0, 2);
   }
+
+
 
   // likelihood
   for (n in 1:N){
@@ -109,7 +135,7 @@ generated quantities {
   // quantities
   vector[K] prS[T, N];
   real log_lik[NT];
-  real y_hat[NT];
+  real yrep[NT];
 
   // log likelihood
   for (nn in 1:N){
@@ -125,11 +151,13 @@ generated quantities {
     }
   }
 
-  // y_hat
+  // yrep
   for (nn in 1:N){
-    y_hat[startstop[nn, 1]] = sum(prS[1, nn] .* to_vector(normal_rng(mu, sigma)));
+    yrep[startstop[nn, 1]] = sum(prS[1, nn] .* to_vector(normal_rng(
+                                        x_d_[startstop[nn, 1]] * alpha +
+                                        to_vector(x_e_[startstop[nn, 1]] * beta), sigma)));
     for (t in 2:T){
-      y_hat[startstop[nn, 1] + t - 1] = sum(prS[t, nn] .* to_vector(normal_rng(mu +
+      yrep[startstop[nn, 1] + t - 1] = sum(prS[t, nn] .* to_vector(normal_rng(
                                         phi * y[startstop[nn, 1] + t - 2] +
                                         x_d_[startstop[nn, 1] + t - 1, :] * alpha +
                                         to_vector(x_e_[startstop[nn, 1] + t - 1] * beta)

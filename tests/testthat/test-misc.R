@@ -51,7 +51,12 @@ test_that("Creation of the order vector", {
 
 
 
-# two intercepts in continuous?
+context("Data")
+
+test_that("Data output is correct", {
+  data <- as.data.frame(matrix(rnorm(12, 0, 1), ncol = 4, nrow = 3)); colnames(data) <- c("x_d1", "x_e1", "n", "t"); formula = list(d = "x_d1", e = "x_e1")
+  expect_true(is.matrix(data_split(data = data, parsed_formula = formula, n = "n", t = "t")$d))
+})
 
 context("Formula")
 
