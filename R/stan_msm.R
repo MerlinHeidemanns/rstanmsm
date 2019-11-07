@@ -40,7 +40,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
     check_data(data = data, order_continuous = order_continuous, parsed_formula = parsed_formula, n_var = n, t_var = t)
 
 
-    data <- data_split(data = data, tvtp = FALSE, parsed_formula = parsed_formula, n = n, t = t)
+    data <- data_split(data = data, tvtp = FALSE, parsed_formula = parsed_formula, n = n, t = t, K = K)
     x_d <- data$d
     x_e <- data$e
     y <- data$y
@@ -56,8 +56,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
 
 
     fit <- list(stanfit = stanfit, algorithm = algorithm, family = family,
-                 data = data, y = y, x = list(x_d = x_d, x_e = x_e), N = N, K = K,
-                 stan_function = "stan_msm", model = mf, parsed_formula = parsed_formula,
+                 data = data, stan_function = "stan_msm", model = mf, parsed_formula = parsed_formula,
                  formula_discrete = formula_discrete, formula_continuous = formula_continuous,
                  order_continuous = order_continuous, shared_TP = shared_TP,
                  call = call)

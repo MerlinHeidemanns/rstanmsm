@@ -8,18 +8,12 @@ stanreg <- function(object) {
   opt <- object$algorithm == "optimizing"
   stanfit <- object$stanfit
   family <- object$family
-  y <- object$y
-  x <- object$x
-  N <- object$N
-  K <- object$K
+  y <- object$data$y
+  N <- length(unique(object$data$n))
+  K <- object$data$K
   T <- object$T
   parsed_formula <- object$parsed_formula
   names_list <- naming_list(parsed_formula)
-
-  nvars <- list(nvars_a = ncol(x$x_a), nvars_b = ncol(x$x_b),
-                nvars_c = ncol(x$x_c), nvars_d = ncol(x$x_d),
-                nvars_e = ncol(x$x_e))
-  nobs <- NROW(y)
 
   stan_summary <- make_stan_summary(stanfit)
   end_coef <- grep("logalpha\\[.+\\]", rownames(stan_summary))[1] - 1 # first non parameter, position preceding it
@@ -42,22 +36,21 @@ stanreg <- function(object) {
 
   # linear predictor, fitted values
   fit_extract <- rstan::extract(stanfit)
-  mu <- fit_extract$y_hat
-  res <- y - mu
+  yrep <- fit_extract$yrep
+  res <- y - yrep
 
   # coefs
 
   out <- list(
     coefs_median = coefs,
     ses = ses,
-    fitted.values = mu,
+    yrep = yrep,
     residuals = res,
     covmat,
-    y,
-    x = x,
     model = object$model,
     data = object$data,
     family,
+    parsed_formula = parsed_formula,
     formula_discrete = object$formula_discrete,
     formula_continuous = object$formula_continuous,
     #prior.info = attr(stanfit, "prior.info"),

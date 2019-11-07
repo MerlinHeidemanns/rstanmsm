@@ -71,7 +71,7 @@ stan_msm.fit <- function(x_e, x_d, y = y, n, t, K = 2, has_intercept = rep(0, 5)
      )
 
     # stanfit
-    stanfit <- stanmodels$msm_constant_continuous_v2
+    stanfit <- stanmodels$msm_constant_continuous
 
     # parameters to exclude
     pars <- pars_include(Mx_d = Mx_d, Mx_e = Mx_e)
@@ -87,7 +87,6 @@ stan_msm.fit <- function(x_e, x_d, y = y, n, t, K = 2, has_intercept = rep(0, 5)
           pi1 = matrix(rep(1/K, N * K), ncol = K, nrow = N),
           A = array(rdirichlet(K * N_, rep(1, K)), dim = c(N_, K, K)),
           phi = matrix(sort(rnorm(K, 0.5, 0.25), decreasing = FALSE), ncol = K, nrow = 1),
-          mu = matrix(sort(rnorm(K, 0, 5)), ncol = K, nrow = 1),
           alpha = array(rnorm(Mx_d_, 0, 1)),
           beta = matrix(rnorm(K * Mx_e_, 0, 1), ncol = K, nrow = Mx_e_),
           sigma = 1)
