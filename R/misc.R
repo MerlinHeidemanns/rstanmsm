@@ -132,14 +132,13 @@ data_check <- function(data = data, par = par) {
   }
   return(data)
 }
-data <- as.data.frame(matrix(rnorm(10), ncol = 2, nrow = 5)); colnames(data) <- c("x1", "x2")
-formula <- list(a = c("x1:x2", "x1"))
-.create_interactions(data = data, formula = formula)
 
-data_split <- function(data = data, tvtp = FALSE, parsed_formula = parsed_formula, n = NULL, t = NULL) {
+
+
+data_split <- function(data = data, tvtp = FALSE, parsed_formula = parsed_formula, n = NULL, t = NULL, K = NULL) {
 
   # initialize output list
-  out.lst <- list(a = NULL, b = NULL, c = NULL, d = NULL, e = NULL, y = NULL, n = NULL, t = NULL)
+  out.lst <- list(a = NULL, b = NULL, c = NULL, d = NULL, e = NULL, y = NULL, n = NULL, t = NULL, K = K, N = NULL)
   if (!is.data.frame(data)){
     data <- as.data.frame(data)
   }
@@ -150,17 +149,23 @@ data_split <- function(data = data, tvtp = FALSE, parsed_formula = parsed_formul
   data <- .create_interactions(data = data, formula = parsed_formula)
 
   if (tvtp) {
-    out.lst$a <- data[, parsed_formula$a]
-    out.lst$b <- data[, parsed_formula$b]
-    out.lst$c <- data[, parsed_formula$c]
+    out.lst$a <- as.matrix(data[, parsed_formula$a])
+    colnames(out.lst$a) <- parsed_formula$a
+    out.lst$b <- as.matrix(data[, parsed_formula$b])
+    colnames(out.lst$b) <- parsed_formula$b
+    out.lst$c <- as.matrix(data[, parsed_formula$c])
+    colnames(out.lst$c) <- parsed_formula$c
   }
 
-  out.lst$d <- data[, parsed_formula$d]
-  out.lst$e <- data[, parsed_formula$e]
+  out.lst$d <- as.matrix(data[, parsed_formula$d])
+  colnames(out.lst$d) <- parsed_formula$d
+  out.lst$e <- as.matrix(data[, parsed_formula$e])
+  colnames(out.lst$e) <- parsed_formula$e
 
-  out.lst$y <- data[ , parsed_formula$y]
+    out.lst$y <- data[ , parsed_formula$y]
   out.lst$n <- data[ , n]
   out.lst$t <- data[ , t]
+  out.lst$N <- length(unique(out.lst$n))
 
   return(out.lst)
 }
@@ -279,7 +284,7 @@ split_naming <- function(x, names_list, N, K, shared_TP = TRUE){
   phi <- x[grepl("phi\\[.+\\]", names(x))]# ar1
   names(phi) <- naming_state("AR1", K)
 
-  # alphs
+  # alpha
   alpha <- x[grepl("^alpha", names(x))]
   if (length(alpha) == 0){ alpha <- NULL } else { names(alpha) <- names_list[["alpha"]]}
 
@@ -308,7 +313,7 @@ naming_fun <- function(x, para_names){
   res.start <- grep("logalpha\\[.+", x)[1]
   res.end   <- length(x)
   res.para <- x[res.start:res.end]
-  name_list <- c(names(para_names$init_prob), names(para_names$tp), names(para_names$intercept),
+  name_list <- c(names(para_names$init_prob), names(para_names$tp),
                  names(para_names$AR1), names(para_names$alpha), names(para_names$beta), "sigma" , res.para)
   return(name_list)
 }
