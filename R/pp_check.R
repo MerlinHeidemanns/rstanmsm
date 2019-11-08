@@ -1,45 +1,38 @@
 # pp_check
 
-#
-# library(bayesplot)
-#
-# pp_check.stan_msm <- function(object, ..., type = c("multiple", "overlaid")) {
-#   y <- object[["y"]]
-#   yrep <- object[["fitted.values"]]
-#   switch(match.arg(type),
-#          multiple = ppc_hist(y, yrep[1:min(8, nrow(yrep)),, drop = FALSE]),
-#          overlaid = ppc_dens_overlay(y, yrep))
-# }
-#
-# ppc_mts <- function(y, yrep, group, stat = "mean", ..., facet_args = list())
-# {
-#   #check_ignored_arguments
-#   y <- bayesplot:::validate_y(y)
-#   yrep <- bayesplot:::validate_yrep(fit$fitted.values, fit$data$y)
-#   group <- bayesplot:::validate_group(fit$data$n, fit$data$y)
-#   plot_data <- bayesplot:::ppc_group_data(y, yrep, group)
-#   plot_data$t <- rep(seq(1, 50), 1002)
-#   plot_data$group2 <- paste(as.character(plot_data$group), as.character(plot_data$variable), sep = "_")
-#   is_y <- plot_data$variable == "y"
-#
-# }
-# group2 <- rep(seq(1, 50), 50)
-#
-# ggplot() +
-#   geom_line(data = plot_data %>% dplyr::filter(variable == "y"), aes(x = t, y = value, color = group)) +
-#   geom_line(data = plot_data %>% dplyr::filter(grepl("yrep",variable)), aes(x = t, y = value, group = group2, color = group),
-#             alpha = 1/10, size = 1/5) +
-#       guides(color = guide_legend(title = NULL),
-#         fill = guide_legend(order = 1)) + bayesplot_theme_get() +
-#         bayesplot:::dont_expand_y_axis() + bayesplot:::no_legend_spacing() + xaxis_title(FALSE) +
-#         yaxis_text(FALSE) + yaxis_ticks(FALSE) + yaxis_title(FALSE)
-#
 
 
 
+pp_check.stan_msm <- function(object, ..., type = ("mts")) {
+ y <- object$data$y
+ yrep <- object$fitted.values
+ n <- object$data$n
+ t <- object$data$t
+  switch(match.arg(type),
+         mts = ppc_mts(y, yrep, n, t)
+         )
+}
+
+ppc_mts <- function(y, yrep, n, t, color = c("blue", "green")){
+ #check_ignored_arguments
+ group <- paste(fit$data$n, fit$data$t)
+ y <- bayesplot:::validate_y(y)
+ yrep <- bayesplot:::validate_yrep(yrep, y)
+ group <- bayesplot:::validate_group(group, y)
+ plot_data <- bayesplot:::ppc_group_data(y, yrep, group)
+ plot_data <- plot_data %>% tidyr::separate(group, c("n", "t"), sep = "\\s") %>% dplyr::mutate(n = as.numeric(n), t = as.numeric(t))
+  ggplot() +
+    geom_line(data = plot_data %>% dplyr::filter(variable == "y"),
+            aes(x = t, y = value, color = as.factor(n)), size = 1) +
+    geom_line(data = plot_data %>% dplyr::filter(grepl("yrep", variable)),
+            aes(x = t, y = value, group = interaction(as.factor(n),as.factor(variable)),color = as.factor(n)),
+           alpha = 0.1, size = 0.1) +
+    scale_colour_manual(values = color)
+    guides(color = guide_legend(title = NULL)) +
+    bayesplot_theme_get()
+}
 
 
-bayesplot:::ppc_stat_grouped
 ## ----- Internal
 
 #' validate_y
