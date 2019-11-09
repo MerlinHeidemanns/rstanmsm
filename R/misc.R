@@ -1,4 +1,24 @@
 
+
+
+
+
+#' check_tp_s
+#'
+#' @param shared_TP TRUE/FALSE indicating whether transition probabilities are being shared.
+#' @param shared_S TRUE/FALSE indicating whether the discrete process is being shared
+#'
+#' This function checks for the case that the user indicates that transition probabilities are individual but the state process is shared
+#' which is not possible. Returns an error.
+
+check_tp_s <- function(shared_TP = NULL, shared_S = NULL, n = NULL){
+  if (isTRUE(shared_S) & isFALSE(shared_TP) & isTRUE(length(unique(n)) > 1)){
+    stop("It is not possible to specify the discrete process as shared and the transition probabilities to be unit-specific for N = 1.")
+  }
+}
+
+
+
 #' formula_parse
 #'
 #' Parses the formulas into their components and stores them in a list

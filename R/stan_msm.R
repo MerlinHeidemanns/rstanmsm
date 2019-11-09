@@ -9,7 +9,7 @@
 #' @export
 
 stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gaussian(),
-                     data = data, n = n, t = t, K = NULL, shared_TP = TRUE, order_continuous = c(),
+                     data = data, n = NULL, t = NULL, K = NULL, shared_TP = TRUE, shared_S = FALSE, order_continuous = c(),
                      na.action = NULL,
                      ... = ...,
                      prior = normal(),
@@ -20,8 +20,10 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
                      init_prior = FALSE,
                      adapt_delta = NULL) {
 
+
     algorithm <- match.arg(algorithm)
     family <- validate_family(family)
+    check_tp_s(shared_TP = shared_TP, shared_S = shared_S, n = n)
 
     call <- match.call(expand.dots = TRUE)
     mf <- match.call(expand.dots = FALSE)

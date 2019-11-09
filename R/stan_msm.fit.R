@@ -122,7 +122,6 @@ stan_msm.fit <- function(x_e, x_d, y = y, n, t, K = 2, has_intercept = rep(0, 5)
       check <- try(check_stanfit(stanfit))
       if (!isTRUE(check)) return(standata)
 
-
       return(structure(stanfit))
     }
 }
