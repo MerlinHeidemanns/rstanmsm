@@ -9,8 +9,10 @@
 #' @export
 
 stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gaussian(),
-                     data = data, n = n, t = t, K = NULL, shared_TP = TRUE, shared_S = FALSE, order_continuous = c(),
-                     na.action = NULL,
+                     data = data, n = n, t = t, K = NULL,
+                     shared_TP = TRUE, shared_S = FALSE,
+                     state_varying_continuous = c(), state_varying_discrete   = list(),
+                     order_continuous = c(), na.action = NULL,
                      ... = ...,
                      prior = normal(),
                      prior_intercept = normal(),
@@ -23,42 +25,36 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
 
     algorithm <- match.arg(algorithm)
     family <- validate_family(family)
-    check_tp_s(shared_TP = shared_TP, shared_S = shared_S, n = n)
+    check_tp_s(shared_TP = shared_TP, shared_S = shared_S, n = n) # check for combinations that are not allowed.
 
     call <- match.call(expand.dots = TRUE)
     mf <- match.call(expand.dots = FALSE)
     m <- match(c("formula_discrete", "formula_continuous"),
                table = names(mf), nomatch = 0L)
     mf <- mf[c(1L, m)]
-    mf$data <- data
 
     # parse formula
     formula_discrete <- deparse_call_formula(mf$formula_discrete)     # extract the discrete formula as a string
     formula_continuous <- deparse_call_formula(mf$formula_continuous) # extract the continuous formula as a string
-    parsed_formula <- formula_parse(formula_discrete = formula_discrete,
-                                    formula_continuous = formula_continuous) # parse the formula
 
     # check data for inclusion
-    check_data(data = data, order_continuous = order_continuous, parsed_formula = parsed_formula, n_var = n, t_var = t)
+    check_data(data = data, order_continuous = order_continuous, parsed_formula = parsed_formula, n_var = n, t_var = t,
+               state_varying_continuous = state_varying_continuous, state_varying_discrete = state_varying_discrete)
 
+    parsed_data_names <- data_parse(formula_continuous = formula_continuous,
+                                    formula_discrete = formula_discrete,
+                                    state_varying_continuous = state_varying_continuous,
+                                    state_varying_discrete = state_varying_discrete,
+                                    data = data, n_var = n, t_var = t)
 
-    data <- data_split(data = data, tvtp = FALSE, parsed_formula = parsed_formula, n = n, t = t, K = K)
-    x_d <- data$d
-    x_e <- data$e
-    y <- data$y
-    n <- data$n
-    t <- data$t
-    has_intercept <- parsed_formula$has_intercept
-    N <- max(data$n)
-
-    stanfit <- stan_msm.fit(x_e = x_e, x_d = x_d, y = y, n = n, t = t, K = K, has_intercept = has_intercept,
-                            shared_TP = shared_TP, shared_S = shared_S, order_continuous = order_continuous,
-                            formula = parsed_formula, family = family, init.prior = init_prior,
+    stanfit <- stan_msm.fit(data = parsed_data_names[["data_lst"]], K = K, shared_TP = shared_TP, shared_S = shared_S,
+                            order_continuous = order_continuous,
+                            family = family, init.prior = init_prior,
                             algorithm = algorithm, iter = 1000, chains = 1)
 
 
     fit <- list(stanfit = stanfit, algorithm = algorithm, family = family,
-                 data = data, stan_function = "stan_msm", model = mf, parsed_formula = parsed_formula,
+                 data = data, stan_function = "stan_msm",
                  formula_discrete = formula_discrete, formula_continuous = formula_continuous,
                  order_continuous = order_continuous, shared_TP = shared_TP, shared_S = shared_S,
                  call = call)
