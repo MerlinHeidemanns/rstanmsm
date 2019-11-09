@@ -65,6 +65,11 @@ context("Formula")
 #  expect_equal(formula_parse(formula_discrete, formula_continuous), list(a = NULL, b = NULL, c = NULL, d = c("x1:x2"), e = NULL))
 #})
 
+test_that("Create interaction effects correctly", {
+  data <- as.data.frame(matrix(rnorm(20), ncol = 2, nrow = 10)); colnames(data) <- c("x1", "x2"); x <- "x1:x2"
+  expect_equal(sum(.interaction(data = data, x = x)), sum(data[, "x1"] * data[, "x2"]))
+})
+
 
 test_that("Interaction effects", {
   expect_equal(formula_parse(NULL, "y ~ x1:x2"), list(y = "y", d = c("x1:x2") , has_intercept = rep(0, 5), all.var = c("x1", "x2", "y")))
