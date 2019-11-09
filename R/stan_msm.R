@@ -9,7 +9,11 @@
 #' @export
 
 stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gaussian(),
+<<<<<<< HEAD
                      data = data, n = NULL, t = NULL, K = NULL, shared_TP = TRUE, shared_S = FALSE, order_continuous = c(),
+=======
+                     data = data, n = n, t = t, K = NULL, shared_TP = TRUE, shared_S = FALSE, order_continuous = c(),
+>>>>>>> 30055aae518f5c24ec687db0e2d07707f7d38c39
                      na.action = NULL,
                      ... = ...,
                      prior = normal(),
@@ -52,7 +56,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
     N <- max(data$n)
 
     stanfit <- stan_msm.fit(x_e = x_e, x_d = x_d, y = y, n = n, t = t, K = K, has_intercept = has_intercept,
-                            shared_TP = shared_TP, order_continuous = order_continuous,
+                            shared_TP = shared_TP, shared_S = shared_S, order_continuous = order_continuous,
                             formula = parsed_formula, family = family, init.prior = init_prior,
                             algorithm = algorithm, iter = 1000, chains = 1)
 
@@ -60,7 +64,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
     fit <- list(stanfit = stanfit, algorithm = algorithm, family = family,
                  data = data, stan_function = "stan_msm", model = mf, parsed_formula = parsed_formula,
                  formula_discrete = formula_discrete, formula_continuous = formula_continuous,
-                 order_continuous = order_continuous, shared_TP = shared_TP,
+                 order_continuous = order_continuous, shared_TP = shared_TP, shared_S = shared_S,
                  call = call)
 
     out <- stanreg(fit)

@@ -3,7 +3,7 @@
 
 
 stan_msm.fit <- function(x_e, x_d, y = y, n, t, K = 2, has_intercept = rep(0, 5),
-                         shared_TP = TRUE, order_continuous,
+                         shared_TP = TRUE, shared_S = FALSE, order_continuous,
                          formula = parsed_formula, family = gaussian(), init.prior = TRUE,
                          algorithm = c("optimizing", "sampling"), ... = ...){
 
@@ -67,11 +67,12 @@ stan_msm.fit <- function(x_e, x_d, y = y, n, t, K = 2, has_intercept = rep(0, 5)
        y = y,
        has_intercept = has_intercept,
        shared_TP = shared_TP,
+       shared_S = shared_S,
        order_x_e = order_x_e
      )
 
     # stanfit
-    stanfit <- stanmodels$msm_constant_continuous
+    stanfit <- stanmodels$msm_constant_continuous_v2
 
     # parameters to exclude
     pars <- pars_include(Mx_d = Mx_d, Mx_e = Mx_e)
