@@ -9,11 +9,7 @@
 #' @export
 
 stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gaussian(),
-<<<<<<< HEAD
-                     data = data, n = NULL, t = NULL, K = NULL, shared_TP = TRUE, shared_S = FALSE, order_continuous = c(),
-=======
                      data = data, n = n, t = t, K = NULL, shared_TP = TRUE, shared_S = FALSE, order_continuous = c(),
->>>>>>> 30055aae518f5c24ec687db0e2d07707f7d38c39
                      na.action = NULL,
                      ... = ...,
                      prior = normal(),

@@ -5,11 +5,7 @@
 \title{stan_msm}
 \usage{
 stan_msm(formula_discrete = NULL, formula_continuous,
-<<<<<<< HEAD
-  family = gaussian(), data = data, n = NULL, t = NULL, K = NULL,
-=======
   family = gaussian(), data = data, n = n, t = t, K = NULL,
->>>>>>> 30055aae518f5c24ec687db0e2d07707f7d38c39
   shared_TP = TRUE, shared_S = FALSE, order_continuous = c(),
   na.action = NULL, ... = ..., prior = normal(),
   prior_intercept = normal(), prior_aux = exponential(),
