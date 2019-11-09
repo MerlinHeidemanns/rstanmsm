@@ -347,7 +347,7 @@ default_stan_control <- function (adapt_delta = NULL, max_treedepth = 15L) {
     if (is.null(adapt_delta)){
         adapt_delta <- 0.95
     }
-    nlist(adapt_delta, max_treedepth)
+    list(adapt_delta = adapt_delta, max_treedepth = max_treedepth)
 }
 
 
