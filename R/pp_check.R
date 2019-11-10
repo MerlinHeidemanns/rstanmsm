@@ -1,8 +1,5 @@
 # pp_check
 
-
-
-
 pp_check.stan_msm <- function(object, ..., type = ("mts")) {
  y <- object$data$y
  yrep <- object$fitted.values
@@ -31,6 +28,11 @@ ppc_mts <- function(y, yrep, n, t, color = c("blue", "green")){
     guides(color = guide_legend(title = NULL)) +
     bayesplot_theme_get()
 }
+
+ppc_acf <- function(y, yrep, n, t){
+
+}
+
 
 
 ## ----- Internal
