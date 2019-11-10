@@ -1,34 +1,40 @@
+#' stan_msm.fit
+#'
+#' @param data Data is a list including matrixes for the sorted predictors and indicator vectors for n and t
 
 
 
-
-stan_msm.fit <- function(x_e, x_d, y = y, n, t, K = 2, has_intercept = rep(0, 5),
-                         shared_TP = TRUE, shared_S = FALSE, order_continuous,
-                         formula = parsed_formula, family = gaussian(), init.prior = TRUE,
-                         algorithm = c("optimizing", "sampling"), ... = ...){
+stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_S = FALSE, order_continuous,
+                          family = gaussian(), init.prior = TRUE,
+                          algorithm = c("optimizing", "sampling"), ... = ...){
 
     # NT
-    N <- max(n)
-    T <- max(t)
+    N <- data$N
+    n <- data$n
+    T <- data$T
     NT <- N * T
 
+    # model specifications
+    K <- data$K
+    has_intercept <- data$has_intercept
+
     # Coerce to matrixes
-    x_e <- as.matrix(x_e)
-    x_d <- as.matrix(x_d)
+    x_d <- data$x_d
+    x_e <- data$x_e
 
     # dimensions
     Mx_d <- ncol(x_d)
     Mx_e <- ncol(x_e)
 
-    if (Mx_e == 0){
-      x_e <- matrix(0, ncol = 0, nrow = NT)
-    }
-    if (Mx_d == 0){
-      x_d <- matrix(0, ncol = 0, nrow = NT)
-    }
+    # fix if NULL
+    if (Mx_d == 0) x_d <- matrix(0, ncol = 0, nrow = NT)
+    if (Mx_e == 0) x_e <- matrix(0, ncol = 0, nrow = NT)
 
     # order vector
-    order_x_e <- create_order_vector(formula, order_continuous)
+    order_x_e <- create_order_vector(data, order_continuous)
+
+    # output
+    y <- data$y
 
     # family
     family <- validate_family(family)
@@ -43,15 +49,6 @@ stan_msm.fit <- function(x_e, x_d, y = y, n, t, K = 2, has_intercept = rep(0, 5)
       start.stop[nn, 1] <- min(seq(1:NT)[n == nn])
       start.stop[nn, 2] <- max(seq(1:NT)[n == nn])
     }
-
-    # names
-    names_list = list(
-      alpha = formula$d,
-      beta = formula$e
-    )
-    if (has_intercept[1] == 1) names_list$alpha <- c("Intercept", names_list$alpha)
-    if (has_intercept[2] == 1) names_list$beta <- c("Intercept", names_list$beta)
-
 
     # standata
     standata <- list(

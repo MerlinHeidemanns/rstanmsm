@@ -19,16 +19,202 @@ check_tp_s <- function(shared_TP = NULL, shared_S = NULL, n = NULL){
 
 
 
+
+
+
+
+
+#' adj_data_types
+#'
+#'
+
+
+
+
+#' data_parse
+#'
+#'
+
+data_parse <- function(formula_continuous, formula_discrete, state_varying_continuous, state_varying_discrete, data, n_var, t_var, K){
+  data_lst <- list(y = NULL, x_a = NULL, x_b = NULL, x_c = NULL, x_d = NULL, x_e = NULL, has_intercept = NULL, n_var = NULL, t_var = NULL, N = NULL)
+  names_lst <- list(y = NULL, x_a = NULL, x_b = NULL, x_c = NULL, x_d = NULL, x_e = NULL)
+  form_con <- if (!is.null(formula_continuous)) .split_formula(formula_continuous) else NULL
+  form_dis <- if (!is.null(formula_discrete)) .split_formula(formula_discrete) else NULL
+
+  # Intercept
+  data_lst$has_intercept <- .has_intercept(form_con = form_con, form_dis = form_dis, state_varying_continuous = state_varying_continuous, state_varying_discrete = state_varying_discrete)
+
+  # y
+  data_lst$y <- data[, form_con[1]]
+  names_lst$y <- form_con[1]
+  form_con <- form_con[2:length(form_con)]
+
+  # create names
+  names_x_d <- form_con[!grepl(paste0(paste0("^" ,state_varying_continuous, "$"), collapse = "|"), form_con)]
+  names_x_e <- state_varying_continuous
+  names_x_a <- form_dis[!grepl(paste0(paste0("^" ,unlist(state_varying_discrete), "$") , collapse = "|"), form_dis)]
+  names_x_b <- state_varying_discrete[["state"]]
+  names_x_c <- state_varying_discrete[["state_state"]]
+
+  # create predictor matrixes
+  data_lst$x_d <- .create_predmat(names_x_d, data)
+  data_lst$x_e <- .create_predmat(names_x_e, data)
+  data_lst$x_a <- .create_predmat(names_x_a, data)
+  data_lst$x_b <- .create_predmat(names_x_b, data)
+  data_lst$x_c <- .create_predmat(names_x_c, data)
+
+  # names
+  names_lst$x_d <- .add_intercept_name(has_intercept[1], colnames(data_lst$x_d))
+  names_lst$x_e <- .add_intercept_name(has_intercept[2], colnames(data_lst$x_e))
+  names_lst$x_a <- .add_intercept_name(has_intercept[3], colnames(data_lst$x_a))
+  names_lst$x_b <- .add_intercept_name(has_intercept[4], colnames(data_lst$x_b))
+  names_lst$x_c <- .add_intercept_name(has_intercept[5], colnames(data_lst$x_c))
+
+  # n and t
+  data_lst$t_var <- data[, t_var]
+  data_lst[["n_var"]] <- .n_var_adj(n_var = n_var, data)
+  data_lst$T <- max(unique(data_lst$t_var))
+  data_lst$N <- length(unique(data_lst[["n_var"]]))
+
+  # K
+  data_lst$K <- K
+
+  return(list(data_lst = data_lst, names_lst = names_lst))
+}
+
+.add_intercept_name <- function(has_intercept, names){
+  out <- names
+  if (has_intercept == 1) out <- c("Intercept", out)
+  return(out)
+}
+
+.n_var_adj <- function(n_var = NULL, data){
+  if (is.null(n_var)){
+    n_var <- rep(1, nrow(data))
+  } else {
+    n <- data[, n_var]
+    unique.n <- unique(n)
+    n_var <- match(n, unique.n)
+    names(n_var) <- as.character(n)
+  }
+  return(n_var)
+}
+
+.factor_mat <- function(x, name){
+  tmp.lvl <- levels(x)
+  tmp.mat <- matrix(0, nrow = length(x), ncol = length(tmp.lvl))
+  for (j in 1:length(tmp.lvl)){
+    tmp.mat[, j][x == tmp.lvl[j]] <- 1
+  }
+  colnames(tmp.mat) <- paste0(name, "_", tmp.lvl)
+  if (all(rowSums(tmp.mat) == 1)){
+    tmp.mat <- tmp.mat[, 2:length(tmp.lvl)]
+  }
+  x <- tmp.mat
+  if (is.null(dim(x))){
+    x <- as.matrix(x)
+    colnames(x) <- name
+  }
+  return(x)
+}
+
+.interaction <- function(x, data){
+  var <- strsplit(x, ":")[[1]] # split interaction into constituent terms
+  var.lst <- list() # container for interaction terms
+  for (i in 1:2){
+    var.name <- var[i] # name of the variable
+    var.tmp <- data[, var.name] # variable
+    if (is.factor(var.tmp)){
+      var.lst[[i]] <- .factor_mat(var.tmp, var.name) # create factor
+    } else {
+      var.lst[[i]] <- as.matrix(var.tmp, ncol = 1) # if not factor then make matrix
+      colnames(var.lst[[i]]) <- var.name # name matrix
+    }
+  }
+  out <- c() # initialize output matrix
+  lng.lst <- length(var.lst) # number of interaction terms
+  pred <- rep(NA, lng.lst) # initialize empty vector to hold N(cols)
+  for (q in 1:lng.lst){
+    pred[q] <- if (is.null(ncol(var.lst[[q]]))) 1 else ncol(var.lst[[q]]) # assign N of columns for cycling
+  }
+  for (i in 1:pred[1]){   # cycle through first matrix
+    for (j in 1:pred[2]){ # cycle through second matrix
+      tmp <- as.matrix(var.lst[[1]][, i] * var.lst[[2]][, j]) # create interaction term
+      colnames(tmp) <- paste0(colnames(var.lst[[1]])[i], ":", colnames(var.lst[[2]])[j]) # rename
+      out <- cbind(out, tmp) # add to output matrix
+    }
+  }
+  return(out)
+}
+
+.create_predmat <- function(names, data){
+  out <- c()
+  names <- names[!names == "Intercept"]
+  for (i in names){
+    tmp <- i
+    if (grepl(":", tmp)){
+      tmp.var <- .interaction(x = tmp, data = data)
+    } else if (is.factor(data[, tmp])){
+      tmp.var <- data[, tmp]
+      tmp.var <- .factor_mat(tmp.var, tmp)
+    } else {
+      tmp.var <- as.matrix(data[, tmp])
+      colnames(tmp.var) <- i
+    }
+    out <- cbind(out, tmp.var)
+  }
+  return(out)
+}
+
+.has_intercept <- function(form_con, form_dis, state_varying_continuous, state_varying_discrete){
+  has_intercept <- rep(0, 5)
+  if (is.element("Intercept", form_con)){
+    if (is.element("Intercept", state_varying_continuous)){
+      has_intercept[2] <- 1
+    } else {
+      has_intercept[1] <- 1
+    }
+  }
+  if (is.element("Intercept", form_dis)){
+    if (is.element("Intercept", state_varying_discrete[["state"]])){
+      has_intercept[4] <- 1
+    } else if (is.element("Intercept", state_varying_discrete[["state_staet"]])){
+      has_intercept[5] <- 1
+    } else {
+      has_intercept[3] <- 1
+    }
+  }
+  return(has_intercept)
+}
+
+
+
+
 #' formula_parse
 #'
 #' Parses the formulas into their components and stores them in a list
 
 
 .split_formula <- function(x){
-  x <- gsub("\\s", "", x)
-  x <- unique(strsplit(x, split = "~|\\+" )[[1]])
-  return(x)
+  if (!is.null(x)){
+    x <- gsub("\\s", "", x)
+    x <- unique(strsplit(x, split = "~|\\+" )[[1]])
+    x[x == "1"] <- "Intercept"
+    out <- c()
+    for (i in x){
+      tmp <- i
+      if (grepl("#", i)){
+        tmp <- c(strsplit(i, "#")[[1]], gsub("#", ":", i))
+      }
+      out <- c(out, tmp)
+    }
+  } else {
+    out <- NULL
+  }
+  return(out)
 }
+.split_formula("y + 1 + x1#x2#x3")
+
 
 .sort_predictor <- function(x){
   out.lst <- list(base = NULL, state = NULL, state.state = NULL, all.var = NULL)
@@ -198,24 +384,42 @@ data_split <- function(data = data, tvtp = FALSE, parsed_formula = parsed_formul
 #' @param data Included data frame
 #' @param order_continuous Vector of parameter names declared to be continuous
 
-check_data <- function(data, order_continuous, parsed_formula, n_var, t_var){
+check_data <- function(data, order_continuous, formula_continuous, formula_discrete, n_var, t_var,
+                       state_varying_continuous = c(),
+                       state_varying_discrete   = list()){
+  var.con <- .split_formula(formula_continuous)
+  var.dis <- .split_formula(formula_discrete)
+  var <- c(var.con, var.dis)
   names_dta <- colnames(data)
+  # check varying
+  .check_varying(var.con, state_varying_continuous)
+  .check_varying(var.dis, state_varying_discrete)
   # check inclusion
-  .check_inclusion(names_dta, parsed_formula = parsed_formula)
+  .check_inclusion(names_dta, parsed_names = var)
   # check for n and t
   .check_nt(names_dta = names_dta, n_var = n_var, t_var = t_var)
   # check for order predictor
-  .check_order(names_dta = parsed_formula$e, order_continuous = order_continuous, has_intercept = parsed_formula$has_intercept)
-  # check intercept
-  .check_intercept(names_dta = names_dta, parsed_formula = parsed_formula)
+  .check_order(state_varying_continuous = state_varying_continuous, order_continuous = order_continuous)
+}
+
+.check_varying <- function(x, varying){
+  if (is.list(x)){
+    x <- unlist(a)
+  }
+  x[x == "1"] <- "Intercept"
+  for (i in varying){
+    if (!is.element(i, x)){
+      stop(paste0("The varying predictor ", i, " is not among the predictors of the continuous model."))
+    }
+  }
 }
 
 
-.check_order <- function(names_dta, order_continuous, has_intercept){
-  cnd1 <- !(all(is.element(order_continuous, names_dta)))
-  cnd2 <- !(is.element("Intercept", order_continuous) & (has_intercept[2] == 1))
-  if ((cnd1) & (cnd2)) {
-    stop("Predictors that are supposed to be ordered are not indicated as varying by state.")
+.check_order <- function(state_varying_continuous, order_continuous){
+  for (i in order_continuous){
+    if (!is.element(i, state_varying_continuous)){
+      stop(paste0("The predictor ", i, " which is supposed to be ordered across states is not indicated as varying by state."))
+    }
   }
 }
 
@@ -225,17 +429,14 @@ check_data <- function(data, order_continuous, parsed_formula, n_var, t_var){
   }
 }
 
-.check_inclusion <- function(names_dta, parsed_formula){
-  for (i in parsed_formula$all.var){
-    if (!is.element(i, names_dta)) stop(paste0("The predictor ", i, " has not been found in the data."))
+.check_inclusion <- function(names_dta, parsed_names){
+  for (i in parsed_names){
+    if (i != "Intercept"){
+      if (!is.element(i, names_dta)) stop(paste0("The predictor ", i, " has not been found in the data."))
+    }
   }
 }
 
-.check_intercept <- function(names_dta, parsed_formula){
-  if ((sum(parsed_formula$has_intercept[1:2]) >= 1) & (grepl("Intercept", names_dta))){
-    stop("Please specify the intercept via 1 +.")
-  }
-}
 
 #' create_order_vector
 #'
@@ -244,9 +445,9 @@ check_data <- function(data, order_continuous, parsed_formula, n_var, t_var){
 #'
 #' This function creates a 0/1 vector indicating whether a particular parameter that is varying across states is ordered.
 
-create_order_vector <- function(formula, order_continuous){
-  intercept <- if (formula$has_intercept[2] == 1) "Intercept" else NULL
-  tmp <- c(intercept, formula$e)
+create_order_vector <- function(data, order_continuous){
+  intercept <- if (data$has_intercept[2] == 1) "Intercept" else NULL
+  tmp <- c(intercept, colnames(x_e))
   out <- rep(0, length(tmp))
   out[match(order_continuous, tmp)] <- 1
   return(out)
@@ -306,11 +507,11 @@ split_naming <- function(x, names_list, N, K, shared_TP = TRUE){
 
   # alpha
   alpha <- x[grepl("^alpha", names(x))]
-  if (length(alpha) == 0){ alpha <- NULL } else { names(alpha) <- names_list[["alpha"]]}
+  if (length(alpha) == 0){ alpha <- NULL } else { names(alpha) <- names_list[["x_d"]]}
 
   # beta
   beta <- x[grepl("beta", names(x))]
-  if (length(beta) == 0){beta <- NULL} else {names(beta) <- naming_state(names_list[["beta"]], K)}
+  if (length(beta) == 0){beta <- NULL} else {names(beta) <- naming_state(names_list[["x_e"]], K)}
 
   # out.lst para
   out.lst$init_prob <- init_prob
