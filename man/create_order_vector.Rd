@@ -4,14 +4,14 @@
 \alias{create_order_vector}
 \title{create_order_vector}
 \usage{
-create_order_vector(formula, order_continuous)
+create_order_vector(data, order_continuous)
 }
 \arguments{
-\item{formula}{The formula list}
-
 \item{order_continuous}{A character vector indicating which parameters are ordered.
 
 This function creates a 0/1 vector indicating whether a particular parameter that is varying across states is ordered.}
+
+\item{formula}{The formula list}
 }
 \description{
 create_order_vector

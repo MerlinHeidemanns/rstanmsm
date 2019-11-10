@@ -6,7 +6,8 @@
 \usage{
 stan_msm(formula_discrete = NULL, formula_continuous,
   family = gaussian(), data = data, n = n, t = t, K = NULL,
-  shared_TP = TRUE, shared_S = FALSE, order_continuous = c(),
+  shared_TP = TRUE, shared_S = FALSE, state_varying_continuous = c(),
+  state_varying_discrete = list(), order_continuous = c(),
   na.action = NULL, ... = ..., prior = normal(),
   prior_intercept = normal(), prior_aux = exponential(),
   prior_PD = FALSE, algorithm = c("sampling", "optimizing"),
