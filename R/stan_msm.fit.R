@@ -10,8 +10,13 @@ stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_S = FALSE, order_
 
     # NT
     N <- data$N
+    n <- data$n
     T <- data$T
     NT <- N * T
+
+    # model specifications
+    K <- data$K
+    has_intercept <- data$has_intercept
 
     # Coerce to matrixes
     x_d <- data$x_d
@@ -27,6 +32,9 @@ stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_S = FALSE, order_
 
     # order vector
     order_x_e <- create_order_vector(data, order_continuous)
+
+    # output
+    y <- data$y
 
     # family
     family <- validate_family(family)

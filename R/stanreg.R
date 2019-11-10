@@ -8,12 +8,12 @@ stanreg <- function(object) {
   opt <- object$algorithm == "optimizing"
   stanfit <- object$stanfit
   family <- object$family
-  y <- object$data$y
-  N <- length(unique(object$data$n))
-  K <- object$data$K
-  T <- object$T
-  parsed_formula <- object$parsed_formula
-  names_list <- naming_list(parsed_formula)
+  data_lst <- object$data[["data_lst"]]
+  names_lst <-object$data[["names_lst"]]
+  y <- data_lst$y
+  N <- data_lst$N
+  K <- data_lst$K
+  T <- data_lst$T
 
   stan_summary <- make_stan_summary(stanfit)
   end_coef <- grep("logalpha\\[.+\\]", rownames(stan_summary))[1] - 1 # first non parameter, position preceding it
@@ -25,8 +25,8 @@ stanreg <- function(object) {
   ses <- apply(stanmat, 2L, mad)
 
 
-  coefs <- split_naming(x = coefs, names_list = names_list, N = N, K = K)
-  ses <- split_naming(x = ses, names_list = names_list, N = N, K = K)
+  coefs <- split_naming(x = coefs, names_list = names_lst, N = N, K = K)
+  ses <- split_naming(x = ses, names_list = names_lst, N = N, K = K)
   rownames(stan_summary) <- naming_fun(x = rownames(stan_summary), para_names = ses)
 
   covmat <- cov(stanmat)
@@ -48,9 +48,8 @@ stanreg <- function(object) {
     residuals = res,
     covmat,
     model = object$model,
-    data = object$data,
+    data = data_lst,
     family,
-    parsed_formula = parsed_formula,
     formula_discrete = object$formula_discrete,
     formula_continuous = object$formula_continuous,
     #prior.info = attr(stanfit, "prior.info"),

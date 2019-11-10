@@ -38,14 +38,16 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
     formula_continuous <- deparse_call_formula(mf$formula_continuous) # extract the continuous formula as a string
 
     # check data for inclusion
-    check_data(data = data, order_continuous = order_continuous, parsed_formula = parsed_formula, n_var = n, t_var = t,
+    check_data(data = data, order_continuous = order_continuous,
+               formula_continuous = formula_continuous, formula_discrete = formula_discrete,
+               n_var = n, t_var = t,
                state_varying_continuous = state_varying_continuous, state_varying_discrete = state_varying_discrete)
 
     parsed_data_names <- data_parse(formula_continuous = formula_continuous,
                                     formula_discrete = formula_discrete,
                                     state_varying_continuous = state_varying_continuous,
                                     state_varying_discrete = state_varying_discrete,
-                                    data = data, n_var = n, t_var = t)
+                                    data = data, n_var = n, t_var = t, K = K)
 
     stanfit <- stan_msm.fit(data = parsed_data_names[["data_lst"]], K = K, shared_TP = shared_TP, shared_S = shared_S,
                             order_continuous = order_continuous,
@@ -54,7 +56,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
 
 
     fit <- list(stanfit = stanfit, algorithm = algorithm, family = family,
-                 data = data, stan_function = "stan_msm",
+                 data = parsed_data_names, stan_function = "stan_msm",
                  formula_discrete = formula_discrete, formula_continuous = formula_continuous,
                  order_continuous = order_continuous, shared_TP = shared_TP, shared_S = shared_S,
                  call = call)
