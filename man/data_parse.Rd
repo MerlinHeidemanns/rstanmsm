@@ -2,7 +2,7 @@
 % Please edit documentation in R/misc.R
 \name{data_parse}
 \alias{data_parse}
-\title{adj_data_types}
+\title{data_parse}
 \usage{
 data_parse(formula_continuous, formula_discrete, state_varying_continuous,
   state_varying_discrete, data, n_var, t_var, K)

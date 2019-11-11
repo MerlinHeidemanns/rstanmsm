@@ -17,20 +17,6 @@ check_tp_s <- function(shared_TP = NULL, shared_S = NULL, n = NULL){
   }
 }
 
-
-
-
-
-
-
-
-#' adj_data_types
-#'
-#'
-
-
-
-
 #' data_parse
 #'
 #'
@@ -64,11 +50,11 @@ data_parse <- function(formula_continuous, formula_discrete, state_varying_conti
   data_lst$x_c <- .create_predmat(names_x_c, data)
 
   # names
-  names_lst$x_d <- .add_intercept_name(has_intercept[1], colnames(data_lst$x_d))
-  names_lst$x_e <- .add_intercept_name(has_intercept[2], colnames(data_lst$x_e))
-  names_lst$x_a <- .add_intercept_name(has_intercept[3], colnames(data_lst$x_a))
-  names_lst$x_b <- .add_intercept_name(has_intercept[4], colnames(data_lst$x_b))
-  names_lst$x_c <- .add_intercept_name(has_intercept[5], colnames(data_lst$x_c))
+  names_lst$x_d <- .add_intercept_name(data_lst$has_intercept[1], colnames(data_lst$x_d))
+  names_lst$x_e <- .add_intercept_name(data_lst$has_intercept[2], colnames(data_lst$x_e))
+  names_lst$x_a <- .add_intercept_name(data_lst$has_intercept[3], colnames(data_lst$x_a))
+  names_lst$x_b <- .add_intercept_name(data_lst$has_intercept[4], colnames(data_lst$x_b))
+  names_lst$x_c <- .add_intercept_name(data_lst$has_intercept[5], colnames(data_lst$x_c))
 
   # n and t
   data_lst$t_var <- data[, t_var]
@@ -188,13 +174,6 @@ data_parse <- function(formula_continuous, formula_discrete, state_varying_conti
 }
 
 
-
-
-#' formula_parse
-#'
-#' Parses the formulas into their components and stores them in a list
-
-
 .split_formula <- function(x){
   if (!is.null(x)){
     x <- gsub("\\s", "", x)
@@ -213,7 +192,27 @@ data_parse <- function(formula_continuous, formula_discrete, state_varying_conti
   }
   return(out)
 }
-.split_formula("y + 1 + x1#x2#x3")
+
+# data <- as.data.frame(matrix(t(rmultinom(10, 1, rep(1/3, 3))) %*% c(1, 2, 3))); colnames(data) <- "x1"
+# x <- "as.factor(x1)"
+# .adj_type <- function(x, data){
+#   # factor
+#   for (i in x){
+#     factor <- if ()
+#     if (grepl("as\\.factor(.+)", i)){
+#       tmp <- gsub("as\\.factor((.+))", "", i)
+#       data[, tmp] <- as.factor(data[, tmp])
+#     }
+#   }
+#   return(data)
+# }
+# .adj_type(x = x, data = data)
+
+#' formula_parse
+#'
+#' Parses the formulas into their components and stores them in a list
+
+
 
 
 .sort_predictor <- function(x){
@@ -447,7 +446,7 @@ check_data <- function(data, order_continuous, formula_continuous, formula_discr
 
 create_order_vector <- function(data, order_continuous){
   intercept <- if (data$has_intercept[2] == 1) "Intercept" else NULL
-  tmp <- c(intercept, colnames(x_e))
+  tmp <- c(intercept, colnames(data$x_e))
   out <- rep(0, length(tmp))
   out[match(order_continuous, tmp)] <- 1
   return(out)
