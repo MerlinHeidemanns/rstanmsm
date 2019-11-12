@@ -493,7 +493,7 @@ naming_state <- function(names, K) {
 #' @param x A named vector of coefficients or standard errors
 #'
 
-split_naming <- function(x, names_list, N, K, shared_TP = TRUE){
+split_naming <- function(x, names_list, N, K, shared_TP = TRUE, state_SD = FALSE){
 
   out.lst <- list(init_prob = NULL, tp = NULL, AR1 = NULL, alpha = NULL,
                   beta = NULL, gamma = NULL, delta = NULL, lambda = NULL)
@@ -512,12 +512,17 @@ split_naming <- function(x, names_list, N, K, shared_TP = TRUE){
   beta <- x[grepl("beta", names(x))]
   if (length(beta) == 0){beta <- NULL} else {names(beta) <- naming_state(names_list[["x_e"]], K)}
 
+  # sigma
+  sigma <- x[grepl("sigma", names(x))]
+  if (state_SD) names(sigma) <- naming_state("sigma", K) else names(sigma) <- "sigma"
+
   # out.lst para
   out.lst$init_prob <- init_prob
   out.lst$tp <- tp
   out.lst$AR1 <- phi
   out.lst$alpha <- if (is.null(alpha)) NULL else alpha
   out.lst$beta <- if (is.null(beta)) NULL else beta
+  out.lst$sigma <- sigma
 
   # return
   return(out.lst)
@@ -534,7 +539,7 @@ naming_fun <- function(x, para_names){
   res.end   <- length(x)
   res.para <- x[res.start:res.end]
   name_list <- c(names(para_names$init_prob), names(para_names$tp),
-                 names(para_names$AR1), names(para_names$alpha), names(para_names$beta), "sigma" , res.para)
+                 names(para_names$AR1), names(para_names$alpha), names(para_names$sigma), names(para_names$beta), res.para)
   return(name_list)
 }
 

@@ -4,7 +4,7 @@
 
 
 
-stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_S = FALSE, order_continuous,
+stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_S = FALSE, state_SD = FALSE, order_continuous,
                           family = gaussian(), init.prior = TRUE,
                           algorithm = c("optimizing", "sampling"), ... = ...){
 
@@ -63,8 +63,9 @@ stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_S = FALSE, order_
        x_e = x_e,
        y = y,
        has_intercept = has_intercept,
-       shared_TP = shared_TP,
-       shared_S = shared_S,
+       shared_TP = as.integer(shared_TP),
+       shared_S = as.integer(shared_S),
+       state_sigma = as.integer(state_SD),
        order_x_e = order_x_e
      )
 

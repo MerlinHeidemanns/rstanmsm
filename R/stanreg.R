@@ -14,6 +14,9 @@ stanreg <- function(object) {
   N <- data_lst$N
   K <- data_lst$K
   T <- data_lst$T
+  state_SD <- object$state_SD
+  shared_TP <- object$shared_TP
+
 
   stan_summary <- make_stan_summary(stanfit)
   end_coef <- grep("logalpha\\[.+\\]", rownames(stan_summary))[1] - 1 # first non parameter, position preceding it
@@ -25,8 +28,8 @@ stanreg <- function(object) {
   ses <- apply(stanmat, 2L, mad)
 
 
-  coefs <- split_naming(x = coefs, names_list = names_lst, N = N, K = K)
-  ses <- split_naming(x = ses, names_list = names_lst, N = N, K = K)
+  coefs <- split_naming(x = coefs, names_list = names_lst, N = N, K = K, shared_TP = shared_TP, state_SD = state_SD)
+  ses <- split_naming(x = ses, names_list = names_lst, N = N, K = K, shared_TP = shared_TP, state_SD = state_SD)
   rownames(stan_summary) <- naming_fun(x = rownames(stan_summary), para_names = ses)
 
   covmat <- cov(stanmat)
@@ -46,8 +49,11 @@ stanreg <- function(object) {
     ses = ses,
     yrep = yrep,
     residuals = res,
-    covmat,
+    covmat = covmat,
     model = object$model,
+    model_spec = list(shared_TP = shared_TP,
+                      shared_S = object$shared_S,
+                      state_SD = state_SD),
     data = data_lst,
     family,
     formula_discrete = object$formula_discrete,

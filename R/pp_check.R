@@ -28,10 +28,10 @@ ppc_mts <- function(y, yrep, n, t, color = c("blue", "green")){
     guides(color = guide_legend(title = NULL)) +
     bayesplot_theme_get()
 }
-y <- fit$data$y
-yrep <- fit$yrep
-n <- fit$data$n_var
-t <- fit$data$t_var
+#y <- fit$data$y
+#yrep <- fit$yrep
+#n <- fit$data$n_var
+#t <- fit$data$t_var
 ppc_acf <- function(y, yrep, n, t){
   group <- paste(n, t)
   y <- bayesplot:::validate_y(y)

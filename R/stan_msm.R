@@ -10,8 +10,8 @@
 
 stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gaussian(),
                      data = data, n = n, t = t, K = NULL,
-                     shared_TP = TRUE, shared_S = FALSE,
-                     state_varying_continuous = c(), state_varying_discrete   = list(),
+                     shared_TP = TRUE, shared_S = FALSE, state_SD = FALSE,
+                     state_varying_continuous = c(), state_varying_discrete = list(),
                      order_continuous = c(), na.action = NULL,
                      ... = ...,
                      prior = normal(),
@@ -49,7 +49,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
                                     state_varying_discrete = state_varying_discrete,
                                     data = data, n_var = n, t_var = t, K = K)
 
-    stanfit <- stan_msm.fit(data = parsed_data_names[["data_lst"]], K = K, shared_TP = shared_TP, shared_S = shared_S,
+    stanfit <- stan_msm.fit(data = parsed_data_names[["data_lst"]], K = K, shared_TP = shared_TP, shared_S = shared_S, state_SD = state_SD,
                             order_continuous = order_continuous,
                             family = family, init.prior = init_prior,
                             algorithm = algorithm, iter = 1000, chains = 1)
@@ -58,7 +58,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
     fit <- list(stanfit = stanfit, algorithm = algorithm, family = family,
                  data = parsed_data_names, stan_function = "stan_msm",
                  formula_discrete = formula_discrete, formula_continuous = formula_continuous,
-                 order_continuous = order_continuous, shared_TP = shared_TP, shared_S = shared_S,
+                 order_continuous = order_continuous, shared_TP = shared_TP, shared_S = shared_S, state_SD = state_SD,
                  call = call)
 
     out <- stanreg(fit)

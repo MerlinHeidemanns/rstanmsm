@@ -5,8 +5,9 @@
 \title{stan_msm.fit}
 \usage{
 stan_msm.fit(data, K = 2, shared_TP = TRUE, shared_S = FALSE,
-  order_continuous, family = gaussian(), init.prior = TRUE,
-  algorithm = c("optimizing", "sampling"), ... = ...)
+  state_SD = FALSE, order_continuous, family = gaussian(),
+  init.prior = TRUE, algorithm = c("optimizing", "sampling"),
+  ... = ...)
 }
 \arguments{
 \item{data}{Data is a list including matrixes for the sorted predictors and indicator vectors for n and t}

@@ -7,12 +7,12 @@ data {
   int<lower = 2> K;                 // N(states)
 
   // predictor dimensions
-  int<lower = 0> Mx_d;            // N(varying parameters of continuous process)
-  int<lower = 0> Mx_e;            // N(varying parameters of continuous process)
+  int<lower = 0> Mx_d;              // N(varying parameters of continuous process)
+  int<lower = 0> Mx_e;              // N(varying parameters of continuous process)
 
   // predictors
-  matrix[NT, Mx_d] x_d;         // matrix of shared continuous of discrete process
-  matrix[NT, Mx_e] x_e;         // matrix of varying continuous of discrete process
+  matrix[NT, Mx_d] x_d;             // matrix of shared continuous of discrete process
+  matrix[NT, Mx_e] x_e;             // matrix of varying continuous of discrete process
 
   // output
   vector[NT] y;                     // vector of output
@@ -21,12 +21,12 @@ data {
   int has_intercept[5];             // 1: alpha, 2: beta
 
   // shared
-  int shared_TP;                       // 0: individual, 1: shared
-  int shared_S;                        // 0: individual, 1: shared
+  int shared_TP;                    // 0: individual, 1: shared
+  int shared_S;                     // 0: individual, 1: shared
+  int state_sigma;                  // 0: general,    1: state-specific
 
   // ordering
   int order_x_e[Mx_e + has_intercept[2]]; // 0: unordered, 1: ordered
-
 }
 
 transformed data {
@@ -42,9 +42,12 @@ transformed data {
   int N_tp = shared_TP ? 1 : N;
   int N_s  = shared_S  ? 1 : N;
 
-  // ordereing on x_e
+  // ordering on x_e
   int Mx_e_un = Mx_e_ - sum(order_x_e);
   int Mx_e_ord = sum(order_x_e);
+
+  // specificity of sigma
+  int K_sigma = state_sigma ? K : 1;
 }
 
 parameters {
@@ -55,10 +58,13 @@ parameters {
   // Continuous observation model
   ordered[K] phi;                    // observation AR
   vector[Mx_d_] alpha;                 // continuous observation model coefficients
-    // ordering
+
+  // ordering
   vector[K] beta_un[Mx_e_un];
   ordered[K] beta_ord[Mx_e_ord];
-  real<lower=0> sigma;               // observation standard deviations
+
+  // variance term
+  real<lower=0> sigma[K_sigma];               // observation standard deviations
 }
 
 transformed parameters {
@@ -76,6 +82,8 @@ transformed parameters {
       }
     }
   }
+
+  // states shared (1) or individual (0)
   if (shared_S == 0){
     // individual states
     { // Forward algorithm log p(z_t = j | x_{1:t})
@@ -86,20 +94,22 @@ transformed parameters {
       for (nn in 1:N){
         int nn_ = shared_TP ? 1 : nn;
         for (j in 1:K){
+          int j_ = state_sigma ? j : 1;
           logalpha[1, nn, j] = log(pi1[nn, j]) + normal_lpdf(y[startstop[nn, 1]] |
                                             x_d_[startstop[nn, 1]] * alpha +
-                                            x_e_[startstop[nn, 1]] * beta[:,j], sigma);
+                                            x_e_[startstop[nn, 1]] * beta[:,j], sigma[j_]);
         }
         for (t in 2:T){
           for (j in 1:K) {
             real accumulator[K];
             for (i in 1:K) {
+              int j_ = state_sigma ? j : 1;
               accumulator[i] = logalpha[t - 1, nn, i] +
                                 log(A[nn_ , i, j]) +
                                 normal_lpdf(y[startstop[nn, 1] + t - 1] |
                                             phi[j] * y[startstop[nn, 1] + t - 2] +
                                             x_d_[startstop[nn, 1] + t - 1] * alpha +
-                                            x_e_[startstop[nn, 1] + t - 1] * beta[:, j], sigma);
+                                            x_e_[startstop[nn, 1] + t - 1] * beta[:, j], sigma[j_]);
             }
             logalpha[t, nn, j] = log_sum_exp(accumulator);
           }
@@ -110,21 +120,23 @@ transformed parameters {
     {
       for (j in 1:K){
         vector[K] accumulator = log(pi1[1]);
+        int j_ = state_sigma ? j : 1;
         for (nn in 1:N){
             accumulator[j] += normal_lpdf(y[startstop[nn, 1]] |
-                                                            x_d_[startstop[nn, 1]] * alpha +
-                                                            x_e_[startstop[nn, 1]] * beta[:,j], sigma);
+                                          x_d_[startstop[nn, 1]] * alpha +
+                                          x_e_[startstop[nn, 1]] * beta[:,j], sigma[j_]);
         }
         logalpha[1, 1] = accumulator;
       }
       for (t in 2:T){
         for (j in 1:K){
           vector[K] accumulator = logalpha[t - 1, 1] + to_vector(log(A[1, :, j]));
+          int j_ = state_sigma ? j : 1;
           for (nn in 1:N){
               accumulator += normal_lpdf(y[startstop[nn, 1] + t - 1] |
                                         phi[j] * y[startstop[nn, 1] + t - 2] +
                                         x_d_[startstop[nn, 1] + t - 1] * alpha +
-                                        x_e_[startstop[nn, 1] + t - 1] * beta[:, j], sigma);
+                                        x_e_[startstop[nn, 1] + t - 1] * beta[:, j], sigma[j_]);
             }
           logalpha[t, 1, j] = log_sum_exp(accumulator);
         }
@@ -134,7 +146,7 @@ transformed parameters {
 }
 
 model {
-
+  // sd
   target += normal_lpdf(sigma | 0, 5);
 
   // structural
@@ -151,8 +163,6 @@ model {
     target += normal_lpdf(beta_un[:,i] | 0, 2);
     target += normal_lpdf(beta_ord[:,i] | 0, 2);
   }
-
-
 
   // likelihood
   for (n in 1:N_s){
@@ -184,18 +194,17 @@ generated quantities {
   // yrep
   for (nn in 1:N){
     int nn_ = shared_S ? 1 : nn;
+    real sigma_s[K] = K_sigma == 1 ? rep_array(sigma[1], K) : sigma;
     yrep[startstop[nn, 1]] = sum(prS[1, nn_] .* to_vector(normal_rng(
-                                        x_d_[startstop[nn, 1]] * alpha +
-                                        to_vector(x_e_[startstop[nn, 1]] * beta), sigma)));
+                                        x_d_[startstop[nn, 1], :] * alpha +
+                                        to_vector(x_e_[startstop[nn, 1], :] * beta)
+                                        , sigma_s)));
     for (t in 2:T){
       yrep[startstop[nn, 1] + t - 1] = sum(prS[t, nn_] .* to_vector(normal_rng(
                                         phi * y[startstop[nn, 1] + t - 2] +
                                         x_d_[startstop[nn, 1] + t - 1, :] * alpha +
                                         to_vector(x_e_[startstop[nn, 1] + t - 1] * beta)
-                                        , sigma)));
+                                        , sigma_s)));
     }
-    // +
-    //                                    to_vector(x_d_[startstop[nn, 1] + t - 1] * alpha) +
-    //
   }
 }

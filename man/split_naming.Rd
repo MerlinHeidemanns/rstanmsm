@@ -4,7 +4,7 @@
 \alias{split_naming}
 \title{split_naming}
 \usage{
-split_naming(x, names_list, N, K, shared_TP = TRUE)
+split_naming(x, names_list, N, K, shared_TP = TRUE, state_SD = FALSE)
 }
 \arguments{
 \item{x}{A named vector of coefficients or standard errors}
