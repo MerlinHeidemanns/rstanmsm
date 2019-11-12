@@ -52,7 +52,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
     stanfit <- stan_msm.fit(data = parsed_data_names[["data_lst"]], K = K, shared_TP = shared_TP, shared_S = shared_S, state_SD = state_SD,
                             order_continuous = order_continuous,
                             family = family, init.prior = init_prior,
-                            algorithm = algorithm, iter = 1000, chains = 1)
+                            algorithm = algorithm, ... = ...)
 
 
     fit <- list(stanfit = stanfit, algorithm = algorithm, family = family,
