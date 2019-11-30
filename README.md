@@ -21,5 +21,6 @@ The current version supports balanced panels for data that is Gaussian. Ordering
 * Extension to unbalanced panels
 * Implementation for missing values within the time series
 * User-defined priors
+* Time-shifted predictors
 * Posterior Predictive Checks, e.g. integration with ```bayesplot```
 * Summary statistics
