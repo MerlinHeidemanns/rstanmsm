@@ -1,6 +1,29 @@
 
 
 
+#' turn_type
+#'
+
+form <- "y ~ 1 + x2 + as.factor(x1)"
+
+spl_form <- c("y", "1", "x2", "as.factor(x1)")
+
+x1 <- sample(c(1,2,3,4), 20, replace = TRUE)
+
+a <- "as.factor(x1)"
+
+gsub("\\)", "", gsub("as.factor\\(", "", a))
+
+
+data <- as.data.frame(as.matrix(t(rmultinom(20, 1, rep(1/3, 3))) %*% c(1, 2, 3), ncol = 1, nrow = 20))
+colnames(data) <- "x1"
+for (i in a){
+
+  tmp <- a
+
+}
+
+
 
 
 #' check_tp_s
