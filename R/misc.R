@@ -55,15 +55,14 @@
 #' obs <- 200
 #' N <- 5
 #' J <- 3
-#' data <- data.frame(x = rnorm(obs),
-#'                    n_var = sort(rep(seq(1, N), obs/N)),
-#'                    t_var = rep(seq(1, obs/N), N))
+#' data <- data.frame(x = rnorm(obs), n_var = sort(rep(seq(1, N), obs/N)), t_var = rep(seq(1, obs/N), N))
 #' data <- merge(data, data.frame(n_var = seq(1, N), j_var = sample(seq(1, J), N, replace = T)))
-#' data <- data[sort(sample(seq(1,obs), round(0.8 * obs))) , ]
+#' data <- data[sample(seq(1,obs), round(0.8 * obs)) , ]
 #' out <- .sort_and_na_extend(data = data, n_var = "n_var", j_var = "j_var", t_var = "t_var")
 
 .sort_and_na_extend <- function(data, n_var = NULL, t_var = NULL, j_var = NULL){
   data <- data %>% rename(t = !!sym(t_var), n = !!sym(n_var), j = !!sym(j_var)) %>%
+    arrange(j,n,t) %>%
     group_by(j) %>%
     complete(nesting(j), t = seq(min(t), max(t))) %>% ungroup()
   id_miss <- .return_id_miss(data)
@@ -92,12 +91,25 @@ check_tp_s <- function(shared_TP = NULL, shared_S = NULL, n = NULL){
 #'
 #' @details j Can be either individual specific (everyone has their own state process),
 #' shared (everyone has the same state process) or based on indicators.
+#' @examples
+#' N <- 50
+#' j_var <- "individual"
+#' n_var <- sample(seq(1, 4), N, replace = TRUE)
+#' .j_var_define(j_var = j_var, n_var = n_var)
+#'
+#' j_var <- "shared"
+#' n_var <- sample(seq(1, 4), N, replace = TRUE)
+#' .j_var_define(j_var = j_var, n_var = n_var)
+#'
+#' j_var <- sample(seq(1,2), N, replace = TRUE)
+#' n_var <- sample(seq(1, 4), N, replace = TRUE)
+#' .j_var_define(j_var = j_var, n_var = n_var)
 
 .j_var_define <- function(j_var = j, n_var = n){
   if (j_var[1] == "individual"){
-    out <- n # give everyone their own state process
+    out <- n_var # give everyone their own state process
   } else if (j_var[1] == "shared"){
-    out <- 1 # give everyone the same state process
+    out <- rep(1, length(n_var)) # give everyone the same state process
   } else {
     out <- match(j_var, unique(j_var)) #
   }
