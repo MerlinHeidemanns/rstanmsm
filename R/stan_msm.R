@@ -9,15 +9,17 @@
 #' @export
 
 stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gaussian(),
-                     data = data, n = n, t = t, K = NULL,
+                     data = data, n = NULL, t = NULL, j_var = NULL, K = NULL,
                      shared_TP = TRUE, shared_S = FALSE, state_SD = FALSE,
                      state_varying_continuous = c(), state_varying_discrete = list(),
                      order_continuous = c(), na.action = NULL,
                      ... = ...,
-                     prior = normal(),
-                     prior_intercept = normal(),
-                     prior_aux = exponential(),
-                     prior_PD = FALSE,
+                     prior_alpha = normal(),
+                     prior_beta = normal(),
+                     prior_gamma = normal(),
+                     prior_delta = normal(),
+                     prior_eta = normal(),
+                     prior_sigma = normal(),
                      algorithm = c("sampling", "optimizing"),
                      init_prior = FALSE,
                      adapt_delta = NULL) {
@@ -43,17 +45,25 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
                n_var = n, t_var = t,
                state_varying_continuous = state_varying_continuous, state_varying_discrete = state_varying_discrete)
 
+    # extend for missing data
+
+    # parse
     parsed_data_names <- data_parse(formula_continuous = formula_continuous,
                                     formula_discrete = formula_discrete,
                                     state_varying_continuous = state_varying_continuous,
                                     state_varying_discrete = state_varying_discrete,
-                                    data = data, n_var = n, t_var = t, K = K)
+                                    data = data, n_var = n, t_var = t, j_var = j, K = K)
 
-    stanfit <- stan_msm.fit(data = parsed_data_names[["data_lst"]], K = K, shared_TP = shared_TP, shared_S = shared_S, state_SD = state_SD,
+    # priors
+    priors <- prior_mat(prior = prior, K = K, outcome = parsed_data_names[["data_lst"]]$y)
+
+    stanfit <- stan_msm.fit(data = parsed_data_names[["data_lst"]], K = K, shared_TP = shared_TP,
+                            shared_S = shared_S, state_SD = state_SD,
                             order_continuous = order_continuous,
                             family = family, init.prior = init_prior,
+                            id_miss = parsed_data_names[["id_miss"]],
+                            priors = priors,
                             algorithm = algorithm, ... = ...)
-
 
     fit <- list(stanfit = stanfit, algorithm = algorithm, family = family,
                  data = parsed_data_names, stan_function = "stan_msm",

@@ -2,7 +2,7 @@ data {
   // dimensions and slicing
   int<lower = 1> N;                 // units
   int<lower = 2> T;                 // maximum of time points
-  int<lower = N> NT;                // number of observatons
+  int<lower = N> NT;                // number of observations
 
   // state process
   int<lower = 1, upper = N> NS;     // N of state processes
@@ -31,7 +31,6 @@ data {
   vector[NT] y;                     // vector of output
 
   // shared
-  int shared_TP;                    // 0: individual, 1: shared
   int state_sigma;                  // 0: general,    1: state-specific
 
   // time varying transition probabilities

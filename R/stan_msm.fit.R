@@ -52,6 +52,35 @@ stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_S = FALSE, state_
 
     # standata
     standata <- list(
+      N = N, # units
+      T = T, # max of time points
+      NT = NT, # N of observations
+      NS = NS, # N of state processes
+      NTP = NTP, # N of transition probabilities
+      id_tp = ,      # [NS] which state process belongs to which tp matrix
+      slicer_T = ,   # min(N, T):max(N, T)
+      startstop = ,  # slicer for s units
+      K = K,         # N of states
+      has_intercept = has_intercept, # [5] 1: alpha, 2: beta; 3: gamma; 4: delta; 5: eta
+      Mz = , # N of tp predictors
+      Mx_d = Mx_d # N of fixed parameters of continuous process
+      Mx_e = Mx_e # N of continuous parameters of continuous process
+      pp1 = pp1, pp2 = pp2, pp3 = pp3, # N of general, state, and state-state specific predictors
+      pp_lambda = , # [3, Mz] which are varying at which level for tps
+      pp_gamma = , # [pp2] 0/1 of varying at state
+      pp_eta = , # [pp2]   0/1 of varying at state-state
+      z = ,      # [NTP * T, Mz] matrix of predictors of discrete process
+      x_d = ,    # [NT, Mx_d] matrix of fixed predictors of continuous process
+      x_e = ,    # [NT, Mx_e] matrix of varying predictors of continuous process
+      y = ,      # [NT] vector of output
+      state_sigma = , # 0: general,    1: state-specific
+      tvtp = ,
+      order_x_e = , # [Mx_e + has_intercept[2]] 0: unordered, 1: ordered
+      A_prior = , # [K] A_prior;
+      priors = ,  #[7,4];     // 1: Kind, 2: mean, 3: sd, 4: df; 1: normal, 2: cauchy, 3: student-t
+      id_miss =   # 1: missing, 0: present / at least one observation
+    )
+
        N = N,
        T = T,
        NT = NT,
@@ -68,6 +97,18 @@ stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_S = FALSE, state_
        state_sigma = as.integer(state_SD),
        order_x_e = order_x_e
      )
+
+
+
+
+
+
+
+
+
+
+
+
 
     # stanfit
     stanfit <- stanmodels$msm_constant_continuous
