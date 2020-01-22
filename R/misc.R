@@ -1,30 +1,75 @@
-
-
-
-#' turn_type
+#'
+#'
+#'
+#' #' turn_type
+#' #'
+#'
+#' form <- "y ~ 1 + x2 + as.factor(x1)"
+#'
+#' spl_form <- c("y", "1", "x2", "as.factor(x1)")
+#'
+#' x1 <- sample(c(1,2,3,4), 20, replace = TRUE)
+#'
+#' a <- "as.factor(x1)"
+#'
+#' gsub("\\)", "", gsub("as.factor\\(", "", a))
+#'
+#'
+#' data <- as.data.frame(as.matrix(t(rmultinom(20, 1, rep(1/3, 3))) %*% c(1, 2, 3), ncol = 1, nrow = 20))
+#' colnames(data) <- "x1"
+#' for (i in a){
+#'
+#'   tmp <- a
+#'
+#' }
 #'
 
-form <- "y ~ 1 + x2 + as.factor(x1)"
 
-spl_form <- c("y", "1", "x2", "as.factor(x1)")
+#' return_start_stop
+#'
+  start.stop.t <- matrix(NA, ncol = 2 * S, nrow = max(lenT$max.t))
+  for (s.id in 1:S){
+    for (t in 1:nrow(start.stop.t)){
+      range <- which(nts$t == t & nts$s == s.id)
+      if (length(range) != 0){
+        start.stop.t[t, (s.id * 2) - 1] <- min(range)
+        start.stop.t[t, (s.id * 2)] <- max(range)
+      }
+    }
+  }
+#' return_id_miss
+#' @param df A dataframe which potentially contains missing values
 
-x1 <- sample(c(1,2,3,4), 20, replace = TRUE)
-
-a <- "as.factor(x1)"
-
-gsub("\\)", "", gsub("as.factor\\(", "", a))
-
-
-data <- as.data.frame(as.matrix(t(rmultinom(20, 1, rep(1/3, 3))) %*% c(1, 2, 3), ncol = 1, nrow = 20))
-colnames(data) <- "x1"
-for (i in a){
-
-  tmp <- a
-
+.return_id_miss <- function(df){
+  id_miss <- as.integer(apply(is.na(df), MARGIN = 1, function(x) TRUE %in% x))
+  return(id_miss)
 }
 
+#' .na_extend
+#' @param df A dataframe containing n_var and t_var
+#' @param n_var The unit level indicator
+#' @param t_var The timepoint indicator
+#' @param j_var The group level indicator
+#'
+#' @examples
+#' obs <- 200
+#' N <- 5
+#' J <- 3
+#' data <- data.frame(x = rnorm(obs),
+#'                    n_var = sort(rep(seq(1, N), obs/N)),
+#'                    t_var = rep(seq(1, obs/N), N))
+#' data <- merge(data, data.frame(n_var = seq(1, N), j_var = sample(seq(1, J), N, replace = T)))
+#' data <- data[sort(sample(seq(1,obs), round(0.8 * obs))) , ]
+#' out <- .sort_and_na_extend(data = data, n_var = "n_var", j_var = "j_var", t_var = "t_var")
 
-
+.sort_and_na_extend <- function(data, n_var = NULL, t_var = NULL, j_var = NULL){
+  data <- data %>% rename(t = !!sym(t_var), n = !!sym(n_var), j = !!sym(j_var)) %>%
+    group_by(j) %>%
+    complete(nesting(j), t = seq(min(t), max(t))) %>% ungroup()
+  id_miss <- .return_id_miss(data)
+  data[is.na(data)] <- 0
+  return(list(data = data, id_miss = id_miss))
+}
 
 #' check_tp_s
 #'
@@ -40,11 +85,41 @@ check_tp_s <- function(shared_TP = NULL, shared_S = NULL, n = NULL){
   }
 }
 
+#' .j_var_define
+#'
+#' @param j_var Grouping variable
+#' @param n_var Unit variable
+#'
+#' @details j Can be either individual specific (everyone has their own state process),
+#' shared (everyone has the same state process) or based on indicators.
+
+.j_var_define <- function(j_var = j, n_var = n){
+  if (j_var[1] == "individual"){
+    out <- n # give everyone their own state process
+  } else if (j_var[1] == "shared"){
+    out <- 1 # give everyone the same state process
+  } else {
+    out <- match(j_var, unique(j_var)) #
+  }
+  J <- length(unique(out)) # number of state processes
+  return(list(out = out, J = J))
+}
+
 #' data_parse
 #'
-#'
+#' @param formula_continuous
+#' @param formula_discrete
+#' @param state_varying_continuous
+#' @param state_varying_discrte
+#' @param data
+#' @param n_var
+#' @param j_var
+#' @param t_var
+#' @param K
 
-data_parse <- function(formula_continuous, formula_discrete, state_varying_continuous, state_varying_discrete, data, n_var, t_var, K){
+data_parse <- function(formula_continuous, formula_discrete,
+                       state_varying_continuous, state_varying_discrete, data,
+                       n_var = n_var, j_var = j_var, t_var = t_var, K){
   data_lst <- list(y = NULL, x_a = NULL, x_b = NULL, x_c = NULL, x_d = NULL, x_e = NULL, has_intercept = NULL, n_var = NULL, t_var = NULL, N = NULL)
   names_lst <- list(y = NULL, x_a = NULL, x_b = NULL, x_c = NULL, x_d = NULL, x_e = NULL)
   form_con <- if (!is.null(formula_continuous)) .split_formula(formula_continuous) else NULL
@@ -52,6 +127,13 @@ data_parse <- function(formula_continuous, formula_discrete, state_varying_conti
 
   # Intercept
   data_lst$has_intercept <- .has_intercept(form_con = form_con, form_dis = form_dis, state_varying_continuous = state_varying_continuous, state_varying_discrete = state_varying_discrete)
+
+  j_var <- .j_var_define(j_var = j_var, n_var = n_var)
+
+  # NA
+  na_df <- .sort_and_na_extend(data, n_var = n_var, t_var = t_var, j_var = j_var)
+  data <- na_df$data
+  id_miss <- na_df$id_miss
 
   # y
   data_lst$y <- data[, form_con[1]]
@@ -88,14 +170,28 @@ data_parse <- function(formula_continuous, formula_discrete, state_varying_conti
   # K
   data_lst$K <- K
 
-  return(list(data_lst = data_lst, names_lst = names_lst))
+  return(list(data_lst = data_lst, names_lst = names_lst, id_miss = id_miss))
 }
+
+#' .add_intercept_name
+#'
+#' @param has_intercept Flag indicating whether the parameter set has an intercept.
+#' @param names Names of the parameters
+#'
+#' @return Return the names of the parameters with `Intercept` appended at the front.
 
 .add_intercept_name <- function(has_intercept, names){
   out <- names
   if (has_intercept == 1) out <- c("Intercept", out)
   return(out)
 }
+
+#' .n_var_adj
+#'
+#' @param n_var A vector of length N indicating group association.
+#' @param data The data vector
+#'
+#' @return Returns a length n vector of 1, ..., J flags.
 
 .n_var_adj <- function(n_var = NULL, data){
   if (is.null(n_var)){
@@ -109,16 +205,22 @@ data_parse <- function(formula_continuous, formula_discrete, state_varying_conti
   return(n_var)
 }
 
+#' .factor_mat
+#'
+#' @param x
+#' @param name
+#'
+#' @examples
+#' N <- 20
+#' x <- as.factor(sample(seq(1, 4), N, replace = TRUE))
+#' .factor_mat(x, "NAME")
+
 .factor_mat <- function(x, name){
   tmp.lvl <- levels(x)
   tmp.mat <- matrix(0, nrow = length(x), ncol = length(tmp.lvl))
-  for (j in 1:length(tmp.lvl)){
-    tmp.mat[, j][x == tmp.lvl[j]] <- 1
-  }
+  for (j in 1:length(tmp.lvl)) tmp.mat[, j][x == tmp.lvl[j]] <- 1
   colnames(tmp.mat) <- paste0(name, "_", tmp.lvl)
-  if (all(rowSums(tmp.mat) == 1)){
-    tmp.mat <- tmp.mat[, 2:length(tmp.lvl)]
-  }
+  if (all(rowSums(tmp.mat) == 1)) tmp.mat <- tmp.mat[, 2:length(tmp.lvl)]
   x <- tmp.mat
   if (is.null(dim(x))){
     x <- as.matrix(x)
@@ -126,6 +228,17 @@ data_parse <- function(formula_continuous, formula_discrete, state_varying_conti
   }
   return(x)
 }
+
+#' .interaction
+#'
+#' @param x The variable name
+#' @param data The data
+#'
+#' @examples
+#' N <- 20
+#' x <- "x1:x2"
+#' data <- data.frame(x1 = as.factor(sample(seq(1, 4), N, replace = TRUE)), x2 = rnorm(N))
+#' .interaction(x = x, data = data)
 
 .interaction <- function(x, data){
   var <- strsplit(x, ":")[[1]] # split interaction into constituent terms
@@ -156,6 +269,14 @@ data_parse <- function(formula_continuous, formula_discrete, state_varying_conti
   return(out)
 }
 
+#' .create_predmat
+#'
+#' @param names Predictor names
+#' @param data The dataframe
+#'
+#' @details Based on the parsed formula adjusts the data frame
+#'
+
 .create_predmat <- function(names, data){
   out <- c()
   names <- names[!names == "Intercept"]
@@ -163,14 +284,14 @@ data_parse <- function(formula_continuous, formula_discrete, state_varying_conti
     tmp <- i
     if (grepl(":", tmp)){
       tmp.var <- .interaction(x = tmp, data = data)
-    } else if (is.factor(data[, tmp])){
-      tmp.var <- data[, tmp]
-      tmp.var <- .factor_mat(tmp.var, tmp)
+    } else if (is.factor(data[, tmp])){ # flag for factor
+      tmp.var <- data[, tmp]            # tmp for factor variable
+      tmp.var <- .factor_mat(tmp.var, tmp) # split factor
     } else {
       tmp.var <- as.matrix(data[, tmp])
       colnames(tmp.var) <- i
     }
-    out <- cbind(out, tmp.var)
+    out <- cbind(out, tmp.var) # append splitted factor
   }
   return(out)
 }
@@ -187,7 +308,7 @@ data_parse <- function(formula_continuous, formula_discrete, state_varying_conti
   if (is.element("Intercept", form_dis)){
     if (is.element("Intercept", state_varying_discrete[["state"]])){
       has_intercept[4] <- 1
-    } else if (is.element("Intercept", state_varying_discrete[["state_staet"]])){
+    } else if (is.element("Intercept", state_varying_discrete[["state_state"]])){
       has_intercept[5] <- 1
     } else {
       has_intercept[3] <- 1
@@ -196,19 +317,29 @@ data_parse <- function(formula_continuous, formula_discrete, state_varying_conti
   return(has_intercept)
 }
 
+#' .split_formula
+#'
+#' @param x The formula
+#'
+#' @details 1.
+#'
+#' @examples
+#' x <- "y ~ 1 + x1#x2"
+#' .split_formula(x)
+#'
+#' x <- "y ~ x1:x2"
+#' .split_formula(x)
 
 .split_formula <- function(x){
   if (!is.null(x)){
-    x <- gsub("\\s", "", x)
-    x <- unique(strsplit(x, split = "~|\\+" )[[1]])
-    x[x == "1"] <- "Intercept"
-    out <- c()
+    x <- gsub("\\s", "", x) # Removes whitespace
+    x <- unique(strsplit(x, split = "~|\\+" )[[1]]) # remove non-unique elements
+    x[x == "1"] <- "Intercept" # add intercept
+    out <- c() # container for variables
     for (i in x){
-      tmp <- i
-      if (grepl("#", i)){
-        tmp <- c(strsplit(i, "#")[[1]], gsub("#", ":", i))
-      }
-      out <- c(out, tmp)
+      tmp <- i # tmp
+      if (grepl("#", i)) tmp <- c(strsplit(i, "#")[[1]], gsub("#", ":", i)) # split on interaction sign and sub interaction sign with singular sign
+      out <- c(out, tmp) # append
     }
   } else {
     out <- NULL
@@ -267,62 +398,6 @@ data_parse <- function(formula_continuous, formula_discrete, state_varying_conti
   return(out.lst)
 }
 
-formula_parse <- function(formula_discrete = NULL, formula_continuous = formula_continuous) {
-
-  int_pattern <- "(^1$)|(^1\\|2$)|(^1\\|3$)"
-
-  # out list
-  out.lst <- list(y = NULL, a = NULL, b = NULL, c = NULL, d = NULL, e = NULL,
-                   has_intercept = rep(0, 5), all.var = NULL)
-
-  # containers
-  tmp.d.a <- tmp.d.b <- tmp.d.c <- tmp.c.d <- tmp.c.e <- tmp.all.var <- c()
-  has_intercept <- rep(0, 5)
-
-  # formula continuous
-  tmp.c <- .split_formula(formula_continuous)
-  for (i in tmp.c[2:length(tmp.c)]){
-    if (grepl(int_pattern, i)){
-      if (grepl("\\|2", i)) {has_intercept[2] <- 1} else {has_intercept[1] <- 1}
-    } else {
-      out <- .sort_predictor(i)
-      tmp.c.d <- c(tmp.c.d, out$base)
-      tmp.c.e <- c(tmp.c.e, out$state)
-      tmp.all.var <- c(tmp.all.var, out$all.var)
-    }
-  }
-
-  # formula discrete
-  if (!is.null(formula_discrete)){
-    tmp.d <- .split_formula(formula_discrete)
-    for (i in tmp.d){
-      if (grepl(int_pattern, i)){
-        if (grepl("\\|3", i)){
-          has_intercept[5] <- 1
-        } else if (grepl("\\|2", i)){
-          has_intercept[4] <- 1
-        } else {
-          has_intercept[3] <- 1
-        }
-      } else {
-        out <- .sort_predictor(i)
-        tmp.d.a <- c(tmp.d.a, out$base)
-        tmp.d.b <- c(tmp.d.b, out$state)
-        tmp.d.c <- c(tmp.d.c, out$state.state)
-        tmp.all.var <- c(tmp.all.var, out$all.var)
-      }
-    }
-  }
-  out.lst$a <- unique(tmp.d.a)
-  out.lst$b <- unique(tmp.d.b)
-  out.lst$c <- unique(tmp.d.c)
-  out.lst$d <- unique(tmp.c.d)
-  out.lst$e <- unique(tmp.c.e)
-  out.lst$y <- tmp.c[1]
-  out.lst$has_intercept <- has_intercept
-  out.lst$all.var <- unique(c(tmp.all.var, tmp.c[1]))
-  return(out.lst)
-}
 
 
 # data_check
