@@ -374,9 +374,49 @@ data_parse <- function(formula_continuous, formula_discrete,
 # }
 # .adj_type(x = x, data = data)
 
-#' formula_parse
+
+#' slicer_time(K)
 #'
-#' Parses the formulas into their components and stores them in a list
+#' @param j_var The group indicator
+#'
+#' @details Returns a matrix that contains the start and stop for each state process
+#' and further grabs elements from the matrix that contains the start and stop of individual
+#' time points
+#'
+#' @examples
+#' j_var <- sort(rep(seq(1, 10), 20))
+#' slicer_time(j_var = j_var)
+
+slicer_time <- function(j_var){
+  J <- length(unique(j_var))
+  slicer_T <- matrix(NA, ncol = 2, nrow = J)
+  for (j in 1:J){
+    range <- which(j_var == j)
+    slicer_T[j,] <- c(min(range), max(range))
+  }
+  return(slicer_T)
+}
+
+#' start_stop_slicer
+#'
+#' @examples
+#' N <- 360
+#' j_var <- sample(seq(1, 3), N, replace = TRUE)
+#' t_var <- sort(sample(rep(seq(1, 60), 6)))
+#' start_stop_slicer(j_var = j_var, t_var = t_var)
+
+start_stop_slicer <- function(j_var = j_var, t_var = t_var){
+  J <- length(unique(j_var))
+  T <- max(t_var) - min(t_var)
+  start_stop <- matrix(NA, ncol = 2 * J, nrow = T)
+  for (j in 1:J){
+    for (t in 1:T){
+      range <- which(t_var == t & j_var == j)
+      if (length(range) != 0) start_stop[t, ((j * 2) - 1):(j * 2)] <- c(min(range), max(range))
+    }
+  }
+  return(start_stop)
+}
 
 
 

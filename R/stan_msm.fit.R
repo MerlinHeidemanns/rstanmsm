@@ -17,6 +17,7 @@ stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_S = FALSE, state_
     # model specifications
     K <- data$K
     has_intercept <- data$has_intercept
+    id_miss = data$id_miss
 
     # Coerce to matrixes
     x_d <- data$x_d
@@ -43,12 +44,14 @@ stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_S = FALSE, state_
     famname <- supported_families[fam]
     is_gaussian <- is.gaussian(famname)
 
-    # start.stop
-    start.stop <- matrix(NA, ncol = 2, nrow = N)
-    for (nn in 1:N){
-      start.stop[nn, 1] <- min(seq(1:NT)[n == nn])
-      start.stop[nn, 2] <- max(seq(1:NT)[n == nn])
-    }
+    # state process
+    NS <- J
+    NTP <- J
+    id_tp <- seq(1, J) # temporary
+
+    # slicer
+    slicer_T <- slicer_time(data$j_var)
+    start_stop <- start_stop_slicer(j_var = data$j_var, t_var = data$t_var)
 
     # standata
     standata <- list(
@@ -57,9 +60,9 @@ stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_S = FALSE, state_
       NT = NT, # N of observations
       NS = NS, # N of state processes
       NTP = NTP, # N of transition probabilities
-      id_tp = ,      # [NS] which state process belongs to which tp matrix
-      slicer_T = ,   # min(N, T):max(N, T)
-      startstop = ,  # slicer for s units
+      id_tp = id_tp,      # [NS] which state process belongs to which tp matrix
+      slicer_T = slicer_T,   # min(N, T):max(N, T)
+      startstop = start_stop,  # slicer for s units
       K = K,         # N of states
       has_intercept = has_intercept, # [5] 1: alpha, 2: beta; 3: gamma; 4: delta; 5: eta
       Mz = , # N of tp predictors
@@ -78,37 +81,8 @@ stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_S = FALSE, state_
       order_x_e = , # [Mx_e + has_intercept[2]] 0: unordered, 1: ordered
       A_prior = , # [K] A_prior;
       priors = ,  #[7,4];     // 1: Kind, 2: mean, 3: sd, 4: df; 1: normal, 2: cauchy, 3: student-t
-      id_miss =   # 1: missing, 0: present / at least one observation
+      id_miss = id_miss  # 1: missing, 0: present / at least one observation
     )
-
-       N = N,
-       T = T,
-       NT = NT,
-       startstop = start.stop,
-       K = K,
-       Mx_e = Mx_e,
-       Mx_d = Mx_d,
-       x_d = x_d,
-       x_e = x_e,
-       y = y,
-       has_intercept = has_intercept,
-       shared_TP = as.integer(shared_TP),
-       shared_S = as.integer(shared_S),
-       state_sigma = as.integer(state_SD),
-       order_x_e = order_x_e
-     )
-
-
-
-
-
-
-
-
-
-
-
-
 
     # stanfit
     stanfit <- stanmodels$msm_constant_continuous

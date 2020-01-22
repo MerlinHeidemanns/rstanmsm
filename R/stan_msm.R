@@ -24,7 +24,6 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
                      init_prior = FALSE,
                      adapt_delta = NULL) {
 
-
     algorithm <- match.arg(algorithm)
     family <- validate_family(family)
     check_tp_s(shared_TP = shared_TP, shared_S = shared_S, n = n) # check for combinations that are not allowed.
@@ -44,8 +43,6 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
                formula_continuous = formula_continuous, formula_discrete = formula_discrete,
                n_var = n, t_var = t,
                state_varying_continuous = state_varying_continuous, state_varying_discrete = state_varying_discrete)
-
-    # extend for missing data
 
     # parse
     parsed_data_names <- data_parse(formula_continuous = formula_continuous,
