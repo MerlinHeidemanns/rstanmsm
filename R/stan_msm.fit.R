@@ -7,7 +7,7 @@
 #' @param state_sigma
 
 
-stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_state = FALSE, state_SD = FALSE, order_continuous,
+stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_state = FALSE, state_sigma = FALSE, order_continuous,
                           family = gaussian(), init_prior = TRUE,
                           algorithm = c("optimizing", "sampling"), ... = ...){
 
@@ -15,24 +15,30 @@ stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_state = FALSE, st
     N <- data$N
     n <- data$n
     T <- data$T
-    NT <- N * T
+    NT <- data$NT
 
     # model specifications
     K <- data$K
     has_intercept <- data$has_intercept
-    id_miss = data$id_miss
+    id_miss <- data$id_miss
 
     # Coerce to matrixes
     x_d <- data$x_d
     x_e <- data$x_e
+    z <- cbind(data$x_a, data$x_b, data$x_c)
 
     # dimensions
     Mx_d <- ncol(x_d)
     Mx_e <- ncol(x_e)
+    Mz <- ncol(z)
 
     # fix if NULL
     if (Mx_d == 0) x_d <- matrix(0, ncol = 0, nrow = NT)
     if (Mx_e == 0) x_e <- matrix(0, ncol = 0, nrow = NT)
+    if (Mx_z == 0) z <- matrix(0, ncol = 0, nrow = NT)
+
+    # pp
+
 
     # order vector
     order_x_e <- create_order_vector(data, order_continuous)
@@ -48,9 +54,9 @@ stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_state = FALSE, st
     is_gaussian <- is.gaussian(famname)
 
     # state process
-    NS <- J
-    NTP <- Q
-    id_tp <- data$
+    NS <- data$J
+    NTP <- data$Q
+    id_tp <- data$id_tp
 
     # slicer
     slicer_T <- slicer_time(data$j)
@@ -68,20 +74,20 @@ stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_state = FALSE, st
       startstop = start_stop,  # slicer for s units
       K = K,         # N of states
       has_intercept = has_intercept, # [5] 1: alpha, 2: beta; 3: gamma; 4: delta; 5: eta
-      Mz = , # N of tp predictors
+      Mz = Mz, # N of tp predictors
       Mx_d = Mx_d, # N of fixed parameters of continuous process
       Mx_e = Mx_e, # N of continuous parameters of continuous process
       pp1 = pp1, pp2 = pp2, pp3 = pp3, # N of general, state, and state-state specific predictors
       pp_lambda = , # [3, Mz] which are varying at which level for tps
       pp_gamma = , # [pp2] 0/1 of varying at state
       pp_eta = , # [pp2]   0/1 of varying at state-state
-      z = ,      # [NTP * T, Mz] matrix of predictors of discrete process
-      x_d = ,    # [NT, Mx_d] matrix of fixed predictors of continuous process
-      x_e = ,    # [NT, Mx_e] matrix of varying predictors of continuous process
-      y = ,      # [NT] vector of output
-      state_sigma = , # 0: general,    1: state-specific
+      z = z,      # [NTP * T, Mz] matrix of predictors of discrete process
+      x_d = x_d,    # [NT, Mx_d] matrix of fixed predictors of continuous process
+      x_e = x_e,    # [NT, Mx_e] matrix of varying predictors of continuous process
+      y = y,      # [NT] vector of output
+      state_sigma = state_sigma, # 0: general,    1: state-specific
       tvtp = ,
-      order_x_e = , # [Mx_e + has_intercept[2]] 0: unordered, 1: ordered
+      order_x_e = order_x_e, # [Mx_e + has_intercept[2]] 0: unordered, 1: ordered
       A_prior = , # [K] A_prior;
       priors = ,  #[7,4];     // 1: Kind, 2: mean, 3: sd, 4: df; 1: normal, 2: cauchy, 3: student-t
       id_miss = id_miss  # 1: missing, 0: present / at least one observation

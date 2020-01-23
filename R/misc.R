@@ -141,6 +141,8 @@ data_parse <- function(formula_continuous, formula_discrete,
   data_lst$n <- .n_adj(n = "n", data = data)
   data_lst$T <- max(unique(data_lst$t))
   data_lst$N <- length(unique(data_lst[["n"]]))
+  data_lst$Q <- length(unique(data[, q]))
+  data_lst$NT <- nrow(data)
 
   # K
   data_lst$K <- K
@@ -495,6 +497,118 @@ start_stop_slicer <- function(j = j, t = t){
   }
   return(start_stop)
 }
+
+
+
+########################################################
+# Stan data
+########################################################
+
+#' prepare_standata
+
+
+prepare_standata <- function(data){
+    # NT
+    N <- data$N
+    n <- data$n
+    T <- data$T
+    NT <- data$NT
+
+    # model specifications
+    K <- data$K
+    has_intercept <- data$has_intercept
+    id_miss <- data$id_miss
+
+    # Coerce to matrixes
+    x_d <- data$x_d
+    x_e <- data$x_e
+    z <- cbind(data$x_a, data$x_b, data$x_c)
+
+    # dimensions
+    Mx_d <- ncol(x_d)
+    Mx_e <- ncol(x_e)
+    Mz <- ncol(z)
+
+    # fix if NULL
+    if (Mx_d == 0) x_d <- matrix(0, ncol = 0, nrow = NT)
+    if (Mx_e == 0) x_e <- matrix(0, ncol = 0, nrow = NT)
+    if (Mx_z == 0) z <- matrix(0, ncol = 0, nrow = NT)
+
+    # pp
+    pp1 <- ncol(data$x_a)
+    pp2 <- ncol(data$x_b)
+    pp3 <- ncol(data$x_c)
+
+    pp_lambda <- matrix(0, nrow = 3, ncol = Mz)
+    pp_lambda[1, 1:pp1] <- 1
+    pp_lambda[2, (pp1 + 1):(pp1 + pp2)] <- 1
+    pp_lambda[3, (pp1 + pp2 + 1):(pp1 + pp2 + pp3)] <- 1
+
+    # order vector
+    order_x_e <- create_order_vector(data, order_continuous)
+
+    # output
+    y <- data$y
+
+    # family
+    family <- validate_family(family)
+    supported_families <- c("gaussian")
+    fam <- which(pmatch(supported_families, family$family, nomatch = 0L) == 1L)
+    famname <- supported_families[fam]
+    is_gaussian <- is.gaussian(famname)
+
+    # state process
+    NS <- data$J
+    NTP <- data$Q
+    id_tp <- data$id_tp
+
+    # slicer
+    slicer_T <- slicer_time(data$j)
+    start_stop <- start_stop_slicer(j = data$j, t = data$t)
+
+    # standata
+    standata <- list(
+      N = N, # units
+      T = T, # max of time points
+      NT = NT, # N of observations
+      NS = NS, # N of state processes
+      NTP = NTP, # N of transition probabilities
+      id_tp = id_tp,      # [NS] which state process belongs to which tp matrix
+      slicer_T = slicer_T,   # min(N, T):max(N, T)
+      startstop = start_stop,  # slicer for s units
+      K = K,         # N of states
+      has_intercept = has_intercept, # [5] 1: alpha, 2: beta; 3: gamma; 4: delta; 5: eta
+      Mz = Mz, # N of tp predictors
+      Mx_d = Mx_d, # N of fixed parameters of continuous process
+      Mx_e = Mx_e, # N of continuous parameters of continuous process
+      pp1 = pp1, pp2 = pp2, pp3 = pp3, # N of general, state, and state-state specific predictors
+      pp_lambda = , # [3, Mz] which are varying at which level for tps
+      pp_gamma = , # [pp2] 0/1 of varying at state
+      pp_eta = , # [pp2]   0/1 of varying at state-state
+      z = z,      # [NTP * T, Mz] matrix of predictors of discrete process
+      x_d = x_d,    # [NT, Mx_d] matrix of fixed predictors of continuous process
+      x_e = x_e,    # [NT, Mx_e] matrix of varying predictors of continuous process
+      y = y,      # [NT] vector of output
+      state_sigma = state_sigma, # 0: general,    1: state-specific
+      tvtp = ,
+      order_x_e = order_x_e, # [Mx_e + has_intercept[2]] 0: unordered, 1: ordered
+      A_prior = , # [K] A_prior;
+      priors = ,  #[7,4];     // 1: Kind, 2: mean, 3: sd, 4: df; 1: normal, 2: cauchy, 3: student-t
+      id_miss = id_miss  # 1: missing, 0: present / at least one observation
+    )
+
+  return(standata)
+}
+
+
+
+
+
+
+
+
+
+
 
 
 
