@@ -49,7 +49,8 @@ stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_state = FALSE, st
 
     # state process
     NS <- J
-    NTP <- J
+    NTP <- Q
+    id_tp <- data$
 
     # slicer
     slicer_T <- slicer_time(data$j)

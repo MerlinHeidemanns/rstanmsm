@@ -37,38 +37,6 @@
       }
     }
   }
-#' return_id_miss
-#' @param df A dataframe which potentially contains missing values
-
-.return_id_miss <- function(df){
-  id_miss <- as.integer(apply(is.na(df), MARGIN = 1, function(x) TRUE %in% x))
-  return(id_miss)
-}
-
-#' .na_extend
-#' @param df A dataframe containing n and z
-#' @param n The unit level indicator
-#' @param t The timepoint indicator
-#' @param j The group level indicator
-#'
-#' @examples
-#' obs <- 200
-#' N <- 5
-#' J <- 3
-#' data <- data.frame(x = rnorm(obs), n = sort(rep(seq(1, N), obs/N)), t = rep(seq(1, obs/N), N))
-#' data <- merge(data, data.frame(n = seq(1, N), j = sample(seq(1, J), N, replace = T)))
-#' data <- data[sample(seq(1,obs), round(0.8 * obs)) , ]
-#' out <- .sort_and_na_extend(data = data, n = "n", j = "j", t = "t")
-
-.sort_and_na_extend <- function(data, n = NULL, t = NULL, j = NULL){
-  data <- data %>% rename(t = !!sym(t), n = !!sym(n), j = !!sym(j)) %>%
-    arrange(j,n,t) %>%
-    group_by(j) %>%
-    complete(nesting(j), t = seq(min(t), max(t))) %>% ungroup()
-  id_miss <- .return_id_miss(data)
-  data[is.na(data)] <- 0
-  return(list(data = data, id_miss = id_miss))
-}
 
 #' check_tp_s
 #'
@@ -100,10 +68,29 @@ check_tp_s <- function(shared_TP = NULL, shared_S = NULL, n = NULL){
 #' @param j
 #' @param q
 #' @param K
+#'
+#' @examples
+#' obs <- 200
+#' N <- 20
+#' T <- 10
+#' J <- 4
+#' Q <- 2
+#' data <- data.frame(y = rnorm(obs), x1 = rnorm(obs), z1 = rnorm(obs), n = sort(rep(seq(1, N), T)), t = rep(seq(1, T), N))
+#' jq <- data.frame(n = seq(1:N), j = sample(1:4, N, replace = TRUE))
+#' jq <- merge(jq, data.frame(j = seq(1, J), q = sample(1:Q, J, replace = TRUE)), by = "j")
+#' data <- merge(data, jq, by = "n")
+#' formula_continuous <- "y ~ 1 + x1"
+#' formula_discrete <- "z1"
+#' state_varying_continuous <- "Intercept"
+#' state_varying_discrete <- list(state = "z1", state_state = NULL)
+#' K <- 3
+#' data_parse(formula_continuous = formula_continuous, formula_discrete = formula_discrete,
+#'            state_varying_continuous = state_varying_continuous, state_varying_discrete = state_varying_discrete,
+#'            data = data, n = "n", j = "j", q = "q", t = "t", K = K)
 
 data_parse <- function(formula_continuous, formula_discrete,
                        state_varying_continuous, state_varying_discrete, data,
-                       n = n, j = j, t = t, q = q, K = K){
+                       n = NULL, j = NULL, t = NULL, q = NULL, K = K){
   data_lst <- list(y = NULL, x_a = NULL, x_b = NULL, x_c = NULL, x_d = NULL, x_e = NULL, has_intercept = NULL, n = NULL, t = NULL, N = NULL)
   names_lst <- list(y = NULL, x_a = NULL, x_b = NULL, x_c = NULL, x_d = NULL, x_e = NULL)
   form_con <- if (!is.null(formula_continuous)) .split_formula(formula_continuous) else NULL
@@ -113,10 +100,13 @@ data_parse <- function(formula_continuous, formula_discrete,
   data_lst$has_intercept <- .has_intercept(form_con = form_con, form_dis = form_dis, state_varying_continuous = state_varying_continuous, state_varying_discrete = state_varying_discrete)
 
   # State process
-  data_lst$j <- .j_define(j = j, n = n)
+  .j_define_out <- .j_define(data = data, j = j, n = n)
+  data_lst$J <- .j_define_out$J
+  data_lst$j <- .j_define_out$j
+  data_lst$id_tp <- .state_probabilities(data = data, j = "j", q = "q")
 
   # NA
-  na_df <- .sort_and_na_extend(data, n = n, t = t, j = j)
+  na_df <- .sort_and_na_extend(data = data, n = "n", t = "t", j = "j")
   data <- na_df$data
   id_miss <- na_df$id_miss
 
@@ -148,7 +138,7 @@ data_parse <- function(formula_continuous, formula_discrete,
 
   # n and t
   data_lst$t <- data[, t]
-  data_lst[["n"]] <- .n_adj(n = n, data)
+  data_lst$n <- .n_adj(n = "n", data = data)
   data_lst$T <- max(unique(data_lst$t))
   data_lst$N <- length(unique(data_lst[["n"]]))
 
@@ -156,6 +146,40 @@ data_parse <- function(formula_continuous, formula_discrete,
   data_lst$K <- K
 
   return(list(data_lst = data_lst, names_lst = names_lst, id_miss = id_miss))
+}
+
+#' return_id_miss
+#' @param df A dataframe which potentially contains missing values
+
+.return_id_miss <- function(df){
+  id_miss <- as.integer(apply(is.na(df), MARGIN = 1, function(x) TRUE %in% x))
+  return(id_miss)
+}
+
+#' .na_extend
+#' @param df A dataframe containing n and z
+#' @param n The unit level indicator
+#' @param t The timepoint indicator
+#' @param j The group level indicator
+#'
+#' @examples
+#' obs <- 200
+#' N <- 5
+#' J <- 3
+#' data <- data.frame(x = rnorm(obs), n = sort(rep(seq(1, N), obs/N)), t = rep(seq(1, obs/N), N))
+#' data <- merge(data, data.frame(n = seq(1, N), j = sample(seq(1, J), N, replace = T)))
+#' data <- data[sample(seq(1,obs), round(0.8 * obs)) , ]
+#' out <- .sort_and_na_extend(data = data, n = "n", j = "j", t = "t")
+
+.sort_and_na_extend <- function(data, n = NULL, t = NULL, j = NULL){
+  data <- data %>% rename(t = !!sym(t), n = !!sym(n), j = !!sym(j)) %>%
+    arrange(j,n,t) %>%
+    group_by(j) %>%
+    complete(nesting(j), t = seq(min(t), max(t))) %>% ungroup()
+  data <- as.data.frame(data)
+  id_miss <- .return_id_miss(data)
+  data[is.na(data)] <- 0
+  return(list(data = data, id_miss = id_miss))
 }
 
 
@@ -180,7 +204,9 @@ data_parse <- function(formula_continuous, formula_discrete,
 #' n <- sample(seq(1, 4), N, replace = TRUE)
 #' .j_define(j = j, n = n)
 
-.j_define <- function(j = j, n = n){
+.j_define <- function(data = data, j = j, n = n){
+  j <- data[, j]
+  n <- data[, n]
   if (j[1] == "individual"){
     out <- n # give everyone their own state process
   } else if (j[1] == "shared"){
@@ -209,7 +235,9 @@ data_parse <- function(formula_continuous, formula_discrete,
 #' .state_probabilities(j = data[, 1], q = "individual")
 #' .state_probabilities(j = data[, 1], q = "shared")
 
-.state_probabilities <- function(j = j, q = q){
+.state_probabilities <- function(data = data, j = j, q = q){
+  q <- data[, q]
+  j <- data[, j]
   if (is.null(q)){
     out <- unique(sort(j))
   } else {
@@ -421,7 +449,11 @@ data_parse <- function(formula_continuous, formula_discrete,
 # .adj_type(x = x, data = data)
 
 
-#' slicer_time(K)
+########################################################
+# Slicers
+########################################################
+
+#' slicer_time
 #'
 #' @param j The group indicator
 #'
@@ -432,11 +464,6 @@ data_parse <- function(formula_continuous, formula_discrete,
 #' @examples
 #' j <- sort(rep(seq(1, 10), 20))
 #' slicer_time(j = j)
-
-
-########################################################
-# Slicers
-########################################################
 
 slicer_time <- function(j){
   J <- length(unique(j))

@@ -54,8 +54,8 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
     # priors
     priors <- prior_mat(prior = prior, K = K, outcome = parsed_data_names[["data_lst"]]$y)
 
-    stanfit <- stan_msm.fit(data = parsed_data_names[["data_lst"]], K = K, q =
-                            shared_state = shared_state, state_sigma = state_sigma,
+    stanfit <- stan_msm.fit(data = parsed_data_names[["data_lst"]], K = K,
+                            state_sigma = state_sigma,
                             order_continuous = order_continuous,
                             family = family, init_prior = init_prior,
                             id_miss = parsed_data_names[["id_miss"]],
@@ -65,7 +65,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
     fit <- list(stanfit = stanfit, algorithm = algorithm, family = family,
                  data = parsed_data_names, stan_function = "stan_msm",
                  formula_discrete = formula_discrete, formula_continuous = formula_continuous,
-                 order_continuous = order_continuous, shared_TP = shared_TP, shared_state = shared_state, state_sigma = state_sigma,
+                 order_continuous = order_continuous, state_sigma = state_sigma,
                  call = call)
 
     out <- stanreg(fit)
