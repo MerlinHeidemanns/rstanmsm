@@ -46,22 +46,22 @@
 }
 
 #' .na_extend
-#' @param df A dataframe containing n_var and t_var
-#' @param n_var The unit level indicator
-#' @param t_var The timepoint indicator
-#' @param j_var The group level indicator
+#' @param df A dataframe containing n and z
+#' @param n The unit level indicator
+#' @param t The timepoint indicator
+#' @param j The group level indicator
 #'
 #' @examples
 #' obs <- 200
 #' N <- 5
 #' J <- 3
-#' data <- data.frame(x = rnorm(obs), n_var = sort(rep(seq(1, N), obs/N)), t_var = rep(seq(1, obs/N), N))
-#' data <- merge(data, data.frame(n_var = seq(1, N), j_var = sample(seq(1, J), N, replace = T)))
+#' data <- data.frame(x = rnorm(obs), n = sort(rep(seq(1, N), obs/N)), t = rep(seq(1, obs/N), N))
+#' data <- merge(data, data.frame(n = seq(1, N), j = sample(seq(1, J), N, replace = T)))
 #' data <- data[sample(seq(1,obs), round(0.8 * obs)) , ]
-#' out <- .sort_and_na_extend(data = data, n_var = "n_var", j_var = "j_var", t_var = "t_var")
+#' out <- .sort_and_na_extend(data = data, n = "n", j = "j", t = "t")
 
-.sort_and_na_extend <- function(data, n_var = NULL, t_var = NULL, j_var = NULL){
-  data <- data %>% rename(t = !!sym(t_var), n = !!sym(n_var), j = !!sym(j_var)) %>%
+.sort_and_na_extend <- function(data, n = NULL, t = NULL, j = NULL){
+  data <- data %>% rename(t = !!sym(t), n = !!sym(n), j = !!sym(j)) %>%
     arrange(j,n,t) %>%
     group_by(j) %>%
     complete(nesting(j), t = seq(min(t), max(t))) %>% ungroup()
@@ -95,16 +95,16 @@ check_tp_s <- function(shared_TP = NULL, shared_S = NULL, n = NULL){
 #' @param state_varying_continuous
 #' @param state_varying_discrte
 #' @param data
-#' @param n_var
-#' @param t_var
-#' @param j_var
-#' @param q_var
+#' @param n
+#' @param t
+#' @param j
+#' @param q
 #' @param K
 
 data_parse <- function(formula_continuous, formula_discrete,
                        state_varying_continuous, state_varying_discrete, data,
-                       n_var = n_var, j_var = j_var, t_var = t_var, q_var = q, K = K){
-  data_lst <- list(y = NULL, x_a = NULL, x_b = NULL, x_c = NULL, x_d = NULL, x_e = NULL, has_intercept = NULL, n_var = NULL, t_var = NULL, N = NULL)
+                       n = n, j = j, t = t, q = q, K = K){
+  data_lst <- list(y = NULL, x_a = NULL, x_b = NULL, x_c = NULL, x_d = NULL, x_e = NULL, has_intercept = NULL, n = NULL, t = NULL, N = NULL)
   names_lst <- list(y = NULL, x_a = NULL, x_b = NULL, x_c = NULL, x_d = NULL, x_e = NULL)
   form_con <- if (!is.null(formula_continuous)) .split_formula(formula_continuous) else NULL
   form_dis <- if (!is.null(formula_discrete)) .split_formula(formula_discrete) else NULL
@@ -113,10 +113,10 @@ data_parse <- function(formula_continuous, formula_discrete,
   data_lst$has_intercept <- .has_intercept(form_con = form_con, form_dis = form_dis, state_varying_continuous = state_varying_continuous, state_varying_discrete = state_varying_discrete)
 
   # State process
-  data_lst$j_var <- .j_var_define(j_var = j_var, n_var = n_var)
+  data_lst$j <- .j_define(j = j, n = n)
 
   # NA
-  na_df <- .sort_and_na_extend(data, n_var = n_var, t_var = t_var, j_var = j_var)
+  na_df <- .sort_and_na_extend(data, n = n, t = t, j = j)
   data <- na_df$data
   id_miss <- na_df$id_miss
 
@@ -147,10 +147,10 @@ data_parse <- function(formula_continuous, formula_discrete,
   names_lst$x_c <- .add_intercept_name(data_lst$has_intercept[5], colnames(data_lst$x_c))
 
   # n and t
-  data_lst$t_var <- data[, t_var]
-  data_lst[["n_var"]] <- .n_var_adj(n_var = n_var, data)
-  data_lst$T <- max(unique(data_lst$t_var))
-  data_lst$N <- length(unique(data_lst[["n_var"]]))
+  data_lst$t <- data[, t]
+  data_lst[["n"]] <- .n_adj(n = n, data)
+  data_lst$T <- max(unique(data_lst$t))
+  data_lst$N <- length(unique(data_lst[["n"]]))
 
   # K
   data_lst$K <- K
@@ -159,39 +159,38 @@ data_parse <- function(formula_continuous, formula_discrete,
 }
 
 
-#' .j_var_define
+#' .j_define
 #'
-#' @param j_var Grouping variable
-#' @param n_var Unit variable
+#' @param j Grouping variable
+#' @param n Unit variable
 #'
 #' @details j Can be either individual specific (everyone has their own state process),
 #' shared (everyone has the same state process) or based on indicators.
 #' @examples
 #' N <- 50
-#' j_var <- "individual"
-#' n_var <- sample(seq(1, 4), N, replace = TRUE)
-#' .j_var_define(j_var = j_var, n_var = n_var)
+#' j <- "individual"
+#' n <- sample(seq(1, 4), N, replace = TRUE)
+#' .j_define(j = j, n = n)
 #'
-#' j_var <- "shared"
-#' n_var <- sample(seq(1, 4), N, replace = TRUE)
-#' .j_var_define(j_var = j_var, n_var = n_var)
+#' j <- "shared"
+#' n <- sample(seq(1, 4), N, replace = TRUE)
+#' .j_define(j = j, n = n)
 #'
-#' j_var <- sample(seq(1,2), N, replace = TRUE)
-#' n_var <- sample(seq(1, 4), N, replace = TRUE)
-#' .j_var_define(j_var = j_var, n_var = n_var)
+#' j <- sample(seq(1,2), N, replace = TRUE)
+#' n <- sample(seq(1, 4), N, replace = TRUE)
+#' .j_define(j = j, n = n)
 
-.j_var_define <- function(j_var = j, n_var = n){
-  if (j_var[1] == "individual"){
-    out <- n_var # give everyone their own state process
-  } else if (j_var[1] == "shared"){
-    out <- rep(1, length(n_var)) # give everyone the same state process
+.j_define <- function(j = j, n = n){
+  if (j[1] == "individual"){
+    out <- n # give everyone their own state process
+  } else if (j[1] == "shared"){
+    out <- rep(1, length(n)) # give everyone the same state process
   } else {
-    out <- match(j_var, unique(j_var)) #
+    out <- match(j, unique(j)) #
   }
   J <- length(unique(out)) # number of state processes
   return(list(out = out, J = J))
 }
-
 
 #' .state_probabilities
 #'
@@ -244,23 +243,23 @@ data_parse <- function(formula_continuous, formula_discrete,
   return(out)
 }
 
-#' .n_var_adj
+#' .n_adj
 #'
-#' @param n_var A vector of length N indicating group association.
+#' @param n A vector of length N indicating group association.
 #' @param data The data vector
 #'
 #' @return Returns a length n vector of 1, ..., J flags.
 
-.n_var_adj <- function(n_var = NULL, data){
-  if (is.null(n_var)){
-    n_var <- rep(1, nrow(data))
+.n_adj <- function(n = NULL, data){
+  if (is.null(n)){
+    n <- rep(1, nrow(data))
   } else {
-    n <- data[, n_var]
+    n <- data[, n]
     unique.n <- unique(n)
-    n_var <- match(n, unique.n)
-    names(n_var) <- as.character(n)
+    n <- match(n, unique.n)
+    names(n) <- as.character(n)
   }
-  return(n_var)
+  return(n)
 }
 
 #' .factor_mat
@@ -333,7 +332,6 @@ data_parse <- function(formula_continuous, formula_discrete,
 #' @param data The dataframe
 #'
 #' @details Based on the parsed formula adjusts the data frame
-#'
 
 .create_predmat <- function(names, data){
   out <- c()
@@ -353,6 +351,8 @@ data_parse <- function(formula_continuous, formula_discrete,
   }
   return(out)
 }
+
+#' .has_intercept
 
 .has_intercept <- function(form_con, form_dis, state_varying_continuous, state_varying_discrete){
   has_intercept <- rep(0, 5)
@@ -423,26 +423,26 @@ data_parse <- function(formula_continuous, formula_discrete,
 
 #' slicer_time(K)
 #'
-#' @param j_var The group indicator
+#' @param j The group indicator
 #'
 #' @details Returns a matrix that contains the start and stop for each state process
 #' and further grabs elements from the matrix that contains the start and stop of individual
 #' time points
 #'
 #' @examples
-#' j_var <- sort(rep(seq(1, 10), 20))
-#' slicer_time(j_var = j_var)
+#' j <- sort(rep(seq(1, 10), 20))
+#' slicer_time(j = j)
 
 
 ########################################################
 # Slicers
 ########################################################
 
-slicer_time <- function(j_var){
-  J <- length(unique(j_var))
+slicer_time <- function(j){
+  J <- length(unique(j))
   slicer_T <- matrix(NA, ncol = 2, nrow = J)
   for (j in 1:J){
-    range <- which(j_var == j)
+    range <- which(j == j)
     slicer_T[j,] <- c(min(range), max(range))
   }
   return(slicer_T)
@@ -452,17 +452,17 @@ slicer_time <- function(j_var){
 #'
 #' @examples
 #' N <- 360
-#' j_var <- sample(seq(1, 3), N, replace = TRUE)
-#' t_var <- sort(sample(rep(seq(1, 60), 6)))
-#' start_stop_slicer(j_var = j_var, t_var = t_var)
+#' j <- sample(seq(1, 3), N, replace = TRUE)
+#' t <- sort(sample(rep(seq(1, 60), 6)))
+#' start_stop_slicer(j = j, t = t)
 
-start_stop_slicer <- function(j_var = j_var, t_var = t_var){
-  J <- length(unique(j_var))
-  T <- max(t_var) - min(t_var)
+start_stop_slicer <- function(j = j, t = t){
+  J <- length(unique(j))
+  T <- max(t) - min(t)
   start_stop <- matrix(NA, ncol = 2 * J, nrow = T)
   for (j in 1:J){
     for (t in 1:T){
-      range <- which(t_var == t & j_var == j)
+      range <- which(t == t & j == j)
       if (length(range) != 0) start_stop[t, ((j * 2) - 1):(j * 2)] <- c(min(range), max(range))
     }
   }
@@ -584,7 +584,7 @@ data_split <- function(data = data, tvtp = FALSE, parsed_formula = parsed_formul
 #' @param data Included data frame
 #' @param order_continuous Vector of parameter names declared to be continuous
 
-check_data <- function(data, order_continuous, formula_continuous, formula_discrete, n_var, t_var,
+check_data <- function(data, order_continuous, formula_continuous, formula_discrete, n, t,
                        state_varying_continuous = c(),
                        state_varying_discrete   = list()){
   var.con <- .split_formula(formula_continuous)
@@ -597,7 +597,7 @@ check_data <- function(data, order_continuous, formula_continuous, formula_discr
   # check inclusion
   .check_inclusion(names_dta, parsed_names = var)
   # check for n and t
-  .check_nt(names_dta = names_dta, n_var = n_var, t_var = t_var)
+  .check_nt(names_dta = names_dta, n = n, t = t)
   # check for order predictor
   .check_order(state_varying_continuous = state_varying_continuous, order_continuous = order_continuous)
 }
@@ -623,8 +623,8 @@ check_data <- function(data, order_continuous, formula_continuous, formula_discr
   }
 }
 
-.check_nt <- function(names_dta, n_var, t_var){
-  if (!(is.element(n_var, names_dta) & is.element(t_var, names_dta))){
+.check_nt <- function(names_dta, n, t){
+  if (!(is.element(n, names_dta) & is.element(t, names_dta))){
     stop("Please supply indexes for n and t.")
   }
 }

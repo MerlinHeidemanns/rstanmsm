@@ -41,7 +41,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
     # check data for inclusion
     check_data(data = data, order_continuous = order_continuous,
                formula_continuous = formula_continuous, formula_discrete = formula_discrete,
-               n_var = n, t_var = t,
+               n = n, t = t,
                state_varying_continuous = state_varying_continuous, state_varying_discrete = state_varying_discrete)
 
     # parse
@@ -49,7 +49,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
                                     formula_discrete = formula_discrete,
                                     state_varying_continuous = state_varying_continuous,
                                     state_varying_discrete = state_varying_discrete,
-                                    data = data, n_var = n, t_var = t, j_var = j, q_var = q, K = K)
+                                    data = data, n = n, t = t, j = j, q = q, K = K)
 
     # priors
     priors <- prior_mat(prior = prior, K = K, outcome = parsed_data_names[["data_lst"]]$y)

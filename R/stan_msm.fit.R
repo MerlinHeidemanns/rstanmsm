@@ -52,8 +52,8 @@ stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_state = FALSE, st
     NTP <- J
 
     # slicer
-    slicer_T <- slicer_time(data$j_var)
-    start_stop <- start_stop_slicer(j_var = data$j_var, t_var = data$t_var)
+    slicer_T <- slicer_time(data$j)
+    start_stop <- start_stop_slicer(j = data$j, t = data$t)
 
     # standata
     standata <- list(
