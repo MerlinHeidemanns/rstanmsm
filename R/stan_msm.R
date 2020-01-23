@@ -4,14 +4,18 @@
 #'
 #' @param formula_discrete The formula of the discrete Markov process
 #' @param formula_continuous The formula of the continuous process
-#' @order_continuous A character vector containing the names of the predictors that are supposed to be ordered.
+#' @param order_continuous A character vector containing the names of the predictors that are supposed to be ordered.
 #' It can include "Intercept" to indicate that the intercept is supposed to be ordered.
+#' @param data A dataframe containing the variables references in `formula_discrete` and `formula_continuous`.
+#' @param family The distribution of the outcome.
+#' @param j State-process association
+#' @param q Transition-process association
+#'
 #' @export
 
 stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gaussian(),
-                     data = data, n = NULL, t = NULL, j_var = NULL, K = NULL,
-                     shared_TP = TRUE, shared_S = FALSE, state_SD = FALSE,
-                     state_varying_continuous = c(), state_varying_discrete = list(),
+                     data = data, n = NULL, t = NULL, j = NULL, q = NULL, K = NULL, state_sigma = FALSE,
+                     state_varying_continuous = c(), state_varying_discrete = list(state = NULL, state_state = NULL),
                      order_continuous = c(), na.action = NULL,
                      ... = ...,
                      prior = c(alpha = normal(), beta = normal(), gamma = normal(),
@@ -22,7 +26,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
 
     algorithm <- match.arg(algorithm)
     family <- validate_family(family)
-    check_tp_s(shared_TP = shared_TP, shared_S = shared_S, n = n) # check for combinations that are not allowed.
+    #check_tp_s(shared_TP = shared_TP, shared_S = shared_S, n = n) # check for combinations that are not allowed.
 
     call <- match.call(expand.dots = TRUE)
     mf <- match.call(expand.dots = FALSE)
@@ -45,15 +49,15 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
                                     formula_discrete = formula_discrete,
                                     state_varying_continuous = state_varying_continuous,
                                     state_varying_discrete = state_varying_discrete,
-                                    data = data, n_var = n, t_var = t, j_var = j, K = K)
+                                    data = data, n_var = n, t_var = t, j_var = j, q_var = q, K = K)
 
     # priors
     priors <- prior_mat(prior = prior, K = K, outcome = parsed_data_names[["data_lst"]]$y)
 
-    stanfit <- stan_msm.fit(data = parsed_data_names[["data_lst"]], K = K, shared_TP = shared_TP,
-                            shared_S = shared_S, state_SD = state_SD,
+    stanfit <- stan_msm.fit(data = parsed_data_names[["data_lst"]], K = K, q =
+                            shared_state = shared_state, state_sigma = state_sigma,
                             order_continuous = order_continuous,
-                            family = family, init.prior = init_prior,
+                            family = family, init_prior = init_prior,
                             id_miss = parsed_data_names[["id_miss"]],
                             priors = priors,
                             algorithm = algorithm, ... = ...)
@@ -61,7 +65,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
     fit <- list(stanfit = stanfit, algorithm = algorithm, family = family,
                  data = parsed_data_names, stan_function = "stan_msm",
                  formula_discrete = formula_discrete, formula_continuous = formula_continuous,
-                 order_continuous = order_continuous, shared_TP = shared_TP, shared_S = shared_S, state_SD = state_SD,
+                 order_continuous = order_continuous, shared_TP = shared_TP, shared_state = shared_state, state_sigma = state_sigma,
                  call = call)
 
     out <- stanreg(fit)

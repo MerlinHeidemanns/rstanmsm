@@ -1,11 +1,14 @@
 #' stan_msm.fit
 #'
 #' @param data Data is a list including matrixes for the sorted predictors and indicator vectors for n and t
+#' @param K The number of states
+#' @param shared_TP
+#' @param shared_state
+#' @param state_sigma
 
 
-
-stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_S = FALSE, state_SD = FALSE, order_continuous,
-                          family = gaussian(), init.prior = TRUE,
+stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_state = FALSE, state_SD = FALSE, order_continuous,
+                          family = gaussian(), init_prior = TRUE,
                           algorithm = c("optimizing", "sampling"), ... = ...){
 
     # NT
@@ -47,7 +50,6 @@ stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_S = FALSE, state_
     # state process
     NS <- J
     NTP <- J
-    id_tp <- seq(1, J) # temporary
 
     # slicer
     slicer_T <- slicer_time(data$j_var)
@@ -66,8 +68,8 @@ stan_msm.fit <- function(data, K = 2, shared_TP = TRUE, shared_S = FALSE, state_
       K = K,         # N of states
       has_intercept = has_intercept, # [5] 1: alpha, 2: beta; 3: gamma; 4: delta; 5: eta
       Mz = , # N of tp predictors
-      Mx_d = Mx_d # N of fixed parameters of continuous process
-      Mx_e = Mx_e # N of continuous parameters of continuous process
+      Mx_d = Mx_d, # N of fixed parameters of continuous process
+      Mx_e = Mx_e, # N of continuous parameters of continuous process
       pp1 = pp1, pp2 = pp2, pp3 = pp3, # N of general, state, and state-state specific predictors
       pp_lambda = , # [3, Mz] which are varying at which level for tps
       pp_gamma = , # [pp2] 0/1 of varying at state

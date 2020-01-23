@@ -84,38 +84,9 @@ check_tp_s <- function(shared_TP = NULL, shared_S = NULL, n = NULL){
   }
 }
 
-#' .j_var_define
-#'
-#' @param j_var Grouping variable
-#' @param n_var Unit variable
-#'
-#' @details j Can be either individual specific (everyone has their own state process),
-#' shared (everyone has the same state process) or based on indicators.
-#' @examples
-#' N <- 50
-#' j_var <- "individual"
-#' n_var <- sample(seq(1, 4), N, replace = TRUE)
-#' .j_var_define(j_var = j_var, n_var = n_var)
-#'
-#' j_var <- "shared"
-#' n_var <- sample(seq(1, 4), N, replace = TRUE)
-#' .j_var_define(j_var = j_var, n_var = n_var)
-#'
-#' j_var <- sample(seq(1,2), N, replace = TRUE)
-#' n_var <- sample(seq(1, 4), N, replace = TRUE)
-#' .j_var_define(j_var = j_var, n_var = n_var)
-
-.j_var_define <- function(j_var = j, n_var = n){
-  if (j_var[1] == "individual"){
-    out <- n_var # give everyone their own state process
-  } else if (j_var[1] == "shared"){
-    out <- rep(1, length(n_var)) # give everyone the same state process
-  } else {
-    out <- match(j_var, unique(j_var)) #
-  }
-  J <- length(unique(out)) # number of state processes
-  return(list(out = out, J = J))
-}
+########################################################
+# Parsing the data
+########################################################
 
 #' data_parse
 #'
@@ -125,13 +96,14 @@ check_tp_s <- function(shared_TP = NULL, shared_S = NULL, n = NULL){
 #' @param state_varying_discrte
 #' @param data
 #' @param n_var
-#' @param j_var
 #' @param t_var
+#' @param j_var
+#' @param q_var
 #' @param K
 
 data_parse <- function(formula_continuous, formula_discrete,
                        state_varying_continuous, state_varying_discrete, data,
-                       n_var = n_var, j_var = j_var, t_var = t_var, K){
+                       n_var = n_var, j_var = j_var, t_var = t_var, q_var = q, K = K){
   data_lst <- list(y = NULL, x_a = NULL, x_b = NULL, x_c = NULL, x_d = NULL, x_e = NULL, has_intercept = NULL, n_var = NULL, t_var = NULL, N = NULL)
   names_lst <- list(y = NULL, x_a = NULL, x_b = NULL, x_c = NULL, x_d = NULL, x_e = NULL)
   form_con <- if (!is.null(formula_continuous)) .split_formula(formula_continuous) else NULL
@@ -140,7 +112,8 @@ data_parse <- function(formula_continuous, formula_discrete,
   # Intercept
   data_lst$has_intercept <- .has_intercept(form_con = form_con, form_dis = form_dis, state_varying_continuous = state_varying_continuous, state_varying_discrete = state_varying_discrete)
 
-  j_var <- .j_var_define(j_var = j_var, n_var = n_var)
+  # State process
+  data_lst$j_var <- .j_var_define(j_var = j_var, n_var = n_var)
 
   # NA
   na_df <- .sort_and_na_extend(data, n_var = n_var, t_var = t_var, j_var = j_var)
@@ -183,6 +156,79 @@ data_parse <- function(formula_continuous, formula_discrete,
   data_lst$K <- K
 
   return(list(data_lst = data_lst, names_lst = names_lst, id_miss = id_miss))
+}
+
+
+#' .j_var_define
+#'
+#' @param j_var Grouping variable
+#' @param n_var Unit variable
+#'
+#' @details j Can be either individual specific (everyone has their own state process),
+#' shared (everyone has the same state process) or based on indicators.
+#' @examples
+#' N <- 50
+#' j_var <- "individual"
+#' n_var <- sample(seq(1, 4), N, replace = TRUE)
+#' .j_var_define(j_var = j_var, n_var = n_var)
+#'
+#' j_var <- "shared"
+#' n_var <- sample(seq(1, 4), N, replace = TRUE)
+#' .j_var_define(j_var = j_var, n_var = n_var)
+#'
+#' j_var <- sample(seq(1,2), N, replace = TRUE)
+#' n_var <- sample(seq(1, 4), N, replace = TRUE)
+#' .j_var_define(j_var = j_var, n_var = n_var)
+
+.j_var_define <- function(j_var = j, n_var = n){
+  if (j_var[1] == "individual"){
+    out <- n_var # give everyone their own state process
+  } else if (j_var[1] == "shared"){
+    out <- rep(1, length(n_var)) # give everyone the same state process
+  } else {
+    out <- match(j_var, unique(j_var)) #
+  }
+  J <- length(unique(out)) # number of state processes
+  return(list(out = out, J = J))
+}
+
+
+#' .state_probabilities
+#'
+#' @param j The state process indicator.
+#' @param q The transition probability indicator.
+#'
+#' @details This function creates a vector of length J assigning the state
+#' processes to specific transition probabilities.
+#'
+#' @examples
+#' t <- data.frame(j = seq(1, 4), q = rep(seq(1, 2), 2))
+#' N <- 20
+#' data <- t[sample(seq(1, 4), N, replace = TRUE), ]
+#' .state_probabilities(j = data[, 1], q = data[, 2])
+#' .state_probabilities(j = data[, 1], q = NULL)
+#' .state_probabilities(j = data[, 1], q = "individual")
+#' .state_probabilities(j = data[, 1], q = "shared")
+
+.state_probabilities <- function(j = j, q = q){
+  if (is.null(q)){
+    out <- unique(sort(j))
+  } else {
+    if (q[1] == "individual"){
+      out <- seq(1, length(unique(j)))
+    } else if (q[1] == "shared"){
+      out <- rep(1, length(unique(j)))
+    } else {
+      data <- cbind(j, q)
+      data <- data[order(data[, 1]),]
+      out <- unique(data) # unique combinations
+      if (length(out[, 1]) != length(unique(out[, 1]))){
+        stop("Assigned transition probabilities are not unique.")
+      }
+      out <- out[, 2]
+    }
+  }
+  return(out)
 }
 
 #' .add_intercept_name
@@ -386,6 +432,11 @@ data_parse <- function(formula_continuous, formula_discrete,
 #' @examples
 #' j_var <- sort(rep(seq(1, 10), 20))
 #' slicer_time(j_var = j_var)
+
+
+########################################################
+# Slicers
+########################################################
 
 slicer_time <- function(j_var){
   J <- length(unique(j_var))
