@@ -1,10 +1,14 @@
 #' prior_mat
 #'
-#' @param prior: A vector for the priors
+#' @param prior: A list of the priors.
+#' @param K: The number of states
+#' @param y: The outcome
 #'
-#' @description If
+#' @details If priors are null, then everything becomes normal.
+#'
+#' @return Returns a list with the transition probability matrix Dirichlet parameters and a matrix of the priors for the rest.
 
-prior_mat <- function(prior = prior, K = K, outcome = outcome){
+prior_mat <- function(prior = prior, K = K, y = y){
   if (is.null(prior)){
     y_sd <- sd(y)
     priors <- matrix(NA, ncol = 4, nrow = 7)
@@ -16,4 +20,5 @@ prior_mat <- function(prior = prior, K = K, outcome = outcome){
     priors[7,] <- c(1, 0, y_sd, 0)
     A_prior <- rep(1, K)
   }
+  return(list(A_prior = A_prior, priors = priors))
 }

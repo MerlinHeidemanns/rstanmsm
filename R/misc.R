@@ -25,18 +25,6 @@
 #'
 
 
-#' return_start_stop
-#'
-  start.stop.t <- matrix(NA, ncol = 2 * S, nrow = max(lenT$max.t))
-  for (s.id in 1:S){
-    for (t in 1:nrow(start.stop.t)){
-      range <- which(nts$t == t & nts$s == s.id)
-      if (length(range) != 0){
-        start.stop.t[t, (s.id * 2) - 1] <- min(range)
-        start.stop.t[t, (s.id * 2)] <- max(range)
-      }
-    }
-  }
 
 #' check_tp_s
 #'
@@ -70,23 +58,23 @@ check_tp_s <- function(shared_TP = NULL, shared_S = NULL, n = NULL){
 #' @param K
 #'
 #' @examples
-#' obs <- 200
-#' N <- 20
-#' T <- 10
-#' J <- 4
-#' Q <- 2
-#' data <- data.frame(y = rnorm(obs), x1 = rnorm(obs), z1 = rnorm(obs), n = sort(rep(seq(1, N), T)), t = rep(seq(1, T), N))
-#' jq <- data.frame(n = seq(1:N), j = sample(1:4, N, replace = TRUE))
-#' jq <- merge(jq, data.frame(j = seq(1, J), q = sample(1:Q, J, replace = TRUE)), by = "j")
-#' data <- merge(data, jq, by = "n")
-#' formula_continuous <- "y ~ 1 + x1"
-#' formula_discrete <- "z1"
-#' state_varying_continuous <- "Intercept"
-#' state_varying_discrete <- list(state = "z1", state_state = NULL)
-#' K <- 3
-#' data_parse(formula_continuous = formula_continuous, formula_discrete = formula_discrete,
-#'            state_varying_continuous = state_varying_continuous, state_varying_discrete = state_varying_discrete,
-#'            data = data, n = "n", j = "j", q = "q", t = "t", K = K)
+obs <- 200
+N <- 20
+T <- 10
+J <- 4
+Q <- 2
+data <- data.frame(y = rnorm(obs), x1 = rnorm(obs), z1 = rnorm(obs), n = sort(rep(seq(1, N), T)), t = rep(seq(1, T), N))
+jq <- data.frame(n = seq(1:N), j = sample(1:4, N, replace = TRUE))
+jq <- merge(jq, data.frame(j = seq(1, J), q = sample(1:Q, J, replace = TRUE)), by = "j")
+data <- merge(data, jq, by = "n")
+formula_continuous <- "y ~ 1 + x1"
+formula_discrete <- "z1"
+state_varying_continuous <- "Intercept"
+state_varying_discrete <- list(state = "z1", state_state = NULL)
+K <- 3
+data <- data_parse(formula_continuous = formula_continuous, formula_discrete = formula_discrete,
+           state_varying_continuous = state_varying_continuous, state_varying_discrete = state_varying_discrete,
+            data = data, n = "n", j = "j", q = "q", t = "t", K = K)
 
 data_parse <- function(formula_continuous, formula_discrete,
                        state_varying_continuous, state_varying_discrete, data,
@@ -108,7 +96,7 @@ data_parse <- function(formula_continuous, formula_discrete,
   # NA
   na_df <- .sort_and_na_extend(data = data, n = "n", t = "t", j = "j")
   data <- na_df$data
-  id_miss <- na_df$id_miss
+  data_lst$id_miss <- na_df$id_miss
 
   # y
   data_lst$y <- data[, form_con[1]]
@@ -147,7 +135,7 @@ data_parse <- function(formula_continuous, formula_discrete,
   # K
   data_lst$K <- K
 
-  return(list(data_lst = data_lst, names_lst = names_lst, id_miss = id_miss))
+  return(list(data_lst = data_lst, names_lst = names_lst))
 }
 
 #' return_id_miss
@@ -217,7 +205,7 @@ data_parse <- function(formula_continuous, formula_discrete,
     out <- match(j, unique(j)) #
   }
   J <- length(unique(out)) # number of state processes
-  return(list(out = out, J = J))
+  return(list(j = out, J = J))
 }
 
 #' .state_probabilities
@@ -505,9 +493,16 @@ start_stop_slicer <- function(j = j, t = t){
 ########################################################
 
 #' prepare_standata
+#'
+#'
+#' order_continuous <- c("Intercept")
 
+prepare_standata(data = data$data_lst, priors = list(priors = c(""), A_prior = c("")),
+                 order_continuous = order_continuous, state_sigma = FALSE, tvtp = TRUE)
 
-prepare_standata <- function(data){
+prepare_standata <- function(data = data, priors = priors, order_continuous = order_continuous,
+                             state_sigma = state_sigma, tvtp = tvtp){
+
     # NT
     N <- data$N
     n <- data$n
@@ -519,43 +514,41 @@ prepare_standata <- function(data){
     has_intercept <- data$has_intercept
     id_miss <- data$id_miss
 
+    # priors
+    A_prior <- priors[["A_prior"]]
+    priors <- priors[["priors"]]
+
     # Coerce to matrixes
     x_d <- data$x_d
     x_e <- data$x_e
     z <- cbind(data$x_a, data$x_b, data$x_c)
 
     # dimensions
-    Mx_d <- ncol(x_d)
-    Mx_e <- ncol(x_e)
-    Mz <- ncol(z)
+    Mx_d <- if (!is.null(x_d)) ncol(x_d) else 0
+    Mx_e <- if (!is.null(x_e)) ncol(x_e) else 0
+    Mz   <- if (!is.null(z)) ncol(z) else 0
 
     # fix if NULL
     if (Mx_d == 0) x_d <- matrix(0, ncol = 0, nrow = NT)
     if (Mx_e == 0) x_e <- matrix(0, ncol = 0, nrow = NT)
-    if (Mx_z == 0) z <- matrix(0, ncol = 0, nrow = NT)
+    if (Mz == 0) z <- matrix(0, ncol = 0, nrow = NT)
 
-    # pp
-    pp1 <- ncol(data$x_a)
-    pp2 <- ncol(data$x_b)
-    pp3 <- ncol(data$x_c)
-
+    # time-varying transition probabilities
+    pp1 <- if (!is.null(data$x_a)) ncol(data$x_a) else 0
+    pp2 <- if (!is.null(data$x_b)) ncol(data$x_b) else 0
+    pp3 <- if (!is.null(data$x_c)) ncol(data$x_c) else 0
     pp_lambda <- matrix(0, nrow = 3, ncol = Mz)
-    pp_lambda[1, 1:pp1] <- 1
-    pp_lambda[2, (pp1 + 1):(pp1 + pp2)] <- 1
-    pp_lambda[3, (pp1 + pp2 + 1):(pp1 + pp2 + pp3)] <- 1
+    if (pp1 != 0) pp_lambda[1, 1:pp1] <- 1
+    if (pp2 != 0) pp_lambda[2, (pp1 + 1):(pp1 + pp2)] <- 1
+    if (pp3 != 0) pp_lambda[3, (pp1 + pp2 + 1):(pp1 + pp2 + pp3)] <- 1
+    pp_gamma <- pp_lambda[2, (pp1 + 1):ncol(pp_lambda)]
+    pp_eta <- pp_lambda[3, (pp1 + 1):ncol(pp_lambda)]
 
     # order vector
-    order_x_e <- create_order_vector(data, order_continuous)
+    order_x_e <- .create_order_vector(data, order_continuous)
 
     # output
     y <- data$y
-
-    # family
-    family <- validate_family(family)
-    supported_families <- c("gaussian")
-    fam <- which(pmatch(supported_families, family$family, nomatch = 0L) == 1L)
-    famname <- supported_families[fam]
-    is_gaussian <- is.gaussian(famname)
 
     # state process
     NS <- data$J
@@ -563,7 +556,7 @@ prepare_standata <- function(data){
     id_tp <- data$id_tp
 
     # slicer
-    slicer_T <- slicer_time(data$j)
+    slicer_T <- slicer_time(j = data$j)
     start_stop <- start_stop_slicer(j = data$j, t = data$t)
 
     # standata
@@ -582,25 +575,56 @@ prepare_standata <- function(data){
       Mx_d = Mx_d, # N of fixed parameters of continuous process
       Mx_e = Mx_e, # N of continuous parameters of continuous process
       pp1 = pp1, pp2 = pp2, pp3 = pp3, # N of general, state, and state-state specific predictors
-      pp_lambda = , # [3, Mz] which are varying at which level for tps
-      pp_gamma = , # [pp2] 0/1 of varying at state
-      pp_eta = , # [pp2]   0/1 of varying at state-state
+      pp_lambda = pp_lambda, # [3, Mz] which are varying at which level for tps
+      pp_gamma = pp_gamma, # [pp2] 0/1 of varying at state
+      pp_eta = pp_eta, # [pp2]   0/1 of varying at state-state
       z = z,      # [NTP * T, Mz] matrix of predictors of discrete process
       x_d = x_d,    # [NT, Mx_d] matrix of fixed predictors of continuous process
       x_e = x_e,    # [NT, Mx_e] matrix of varying predictors of continuous process
       y = y,      # [NT] vector of output
-      state_sigma = state_sigma, # 0: general,    1: state-specific
-      tvtp = ,
+      state_sigma = as.integer(state_sigma), # 0: general,    1: state-specific
+      tvtp = as.integer(tvtp),
       order_x_e = order_x_e, # [Mx_e + has_intercept[2]] 0: unordered, 1: ordered
-      A_prior = , # [K] A_prior;
-      priors = ,  #[7,4];     // 1: Kind, 2: mean, 3: sd, 4: df; 1: normal, 2: cauchy, 3: student-t
+      A_prior = A_prior, # [K] A_prior;
+      priors = priors,  #[7,4];     // 1: Kind, 2: mean, 3: sd, 4: df; 1: normal, 2: cauchy, 3: student-t
       id_miss = id_miss  # 1: missing, 0: present / at least one observation
     )
 
   return(standata)
 }
 
+#' .create_order_vector
+#'
+#' @param formula The formula list
+#' @param order_continuous A character vector indicating which parameters are ordered.
+#'
+#' This function creates a 0/1 vector indicating whether a particular parameter that is varying across states is ordered.
 
+.create_order_vector <- function(data, order_continuous){
+  intercept <- if (data$has_intercept[2] == 1) "Intercept" else NULL
+  tmp <- c(intercept, colnames(data$x_e))
+  out <- rep(0, length(tmp))
+  out[match(order_continuous, tmp)] <- 1
+  return(out)
+}
+
+#' initialization
+
+# if (init.prior) {
+#   initf2 <- function(chain_id = 1) {
+#     list(
+#       pi1 = matrix(rep(1/K, N * K), ncol = K, nrow = N),
+#       A = array(rdirichlet(K * N_, rep(1, K)), dim = c(N_, K, K)),
+#       phi = matrix(sort(rnorm(K, 0.5, 0.25), decreasing = FALSE), ncol = K, nrow = 1),
+#       alpha = array(rnorm(Mx_d_, 0, 1)),
+#       beta = matrix(rnorm(K * Mx_e_, 0, 1), ncol = K, nrow = Mx_e_),
+#       sigma = 1)
+#     }
+#   init_ll <- lapply(1:n_chains, function(id) initf2(chain_id = id))
+#   init = init_ll
+# } else {
+#   init = "random"
+# }
 
 
 
@@ -717,8 +741,9 @@ data_split <- function(data = data, tvtp = FALSE, parsed_formula = parsed_formul
   return(out.lst)
 }
 
-
-
+########################################################
+# Check data
+########################################################
 
 #' check_order
 #'
@@ -779,20 +804,7 @@ check_data <- function(data, order_continuous, formula_continuous, formula_discr
 }
 
 
-#' create_order_vector
-#'
-#' @param formula The formula list
-#' @param order_continuous A character vector indicating which parameters are ordered.
-#'
-#' This function creates a 0/1 vector indicating whether a particular parameter that is varying across states is ordered.
 
-create_order_vector <- function(data, order_continuous){
-  intercept <- if (data$has_intercept[2] == 1) "Intercept" else NULL
-  tmp <- c(intercept, colnames(data$x_e))
-  out <- rep(0, length(tmp))
-  out[match(order_continuous, tmp)] <- 1
-  return(out)
-}
 
 
 split_coef <- function(x, formula){
@@ -922,11 +934,11 @@ default_stan_control <- function (adapt_delta = NULL, max_treedepth = 15L) {
 #'
 #' Set parameters to include in output.
 
-pars_include <- function(Mx_a = 0, Mx_b = 0, Mx_c = 0, Mx_d = 0, Mx_e = 0){
+pars_include <- function(pp1 = 0, pp2 = 0, pp3 = 0, Mx_d = 0, Mx_e = 0){
   pars <- c("beta_un", "beta_ord")
-  if (Mx_a == 0) pars <- c(pars, "gamma")
-  if (Mx_b == 0) pars <- c(pars, "delta")
-  if (Mx_c == 0) pars <- c(pars, "lambda")
+  if (pp1 == 0) pars <- c(pars, "gamma")
+  if (pp2 == 0) pars <- c(pars, "delta")
+  if (pp3 == 0) pars <- c(pars, "lambda")
   if (Mx_d == 0) pars <- c(pars, "alpha")
   if (Mx_e == 0) pars <- c(pars, "beta")
   return(pars)
