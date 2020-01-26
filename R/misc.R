@@ -90,7 +90,7 @@ data_parse <- function(formula_continuous, formula_discrete,
   # State process
   .j_define_out <- .j_define(data = data, j = j, n = n)
   data_lst$J <- .j_define_out$J
-  data_lst$j <- .j_define_out$j
+  data[, j] <- .j_define_out$j
   data_lst$id_tp <- .state_probabilities(data = data, j = "j", q = "q")
 
   # NA
@@ -131,6 +131,7 @@ data_parse <- function(formula_continuous, formula_discrete,
   data_lst$N <- length(unique(data_lst[["n"]]))
   data_lst$Q <- length(unique(data[, q]))
   data_lst$NT <- nrow(data)
+  data_lst$j <- data[, j]
 
   # K
   data_lst$K <- K
@@ -458,9 +459,9 @@ data_parse <- function(formula_continuous, formula_discrete,
 slicer_time <- function(j){
   J <- length(unique(j))
   slicer_T <- matrix(NA, ncol = 2, nrow = J)
-  for (j in 1:J){
-    range <- which(j == j)
-    slicer_T[j,] <- c(min(range), max(range))
+  for (q in 1:J){
+    range <- which(j == q)
+    slicer_T[q,] <- c(min(range), max(range))
   }
   return(slicer_T)
 }
@@ -475,12 +476,12 @@ slicer_time <- function(j){
 
 start_stop_slicer <- function(j = j, t = t){
   J <- length(unique(j))
-  T <- max(t) - min(t)
+  T <- max(t) - min(t) + 1
   start_stop <- matrix(NA, ncol = 2 * J, nrow = T)
-  for (j in 1:J){
-    for (t in 1:T){
-      range <- which(t == t & j == j)
-      if (length(range) != 0) start_stop[t, ((j * 2) - 1):(j * 2)] <- c(min(range), max(range))
+  for (j_id in 1:J){
+    for (t_id in 1:T){
+      range <- which(t == t_id & j == j_id)
+      if (length(range) != 0) start_stop[t_id, ((j_id * 2) - 1):(j_id * 2)] <- c(min(range), max(range))
     }
   }
   return(start_stop)
@@ -496,8 +497,8 @@ start_stop_slicer <- function(j = j, t = t){
 #'
 #'
 #' order_continuous <- c("Intercept")
-
-prepare_standata(data = data$data_lst, priors = list(priors = c(""), A_prior = c("")),
+priors <- prior_mat(prior = NULL, K = 3, y = data$data_lst$y)
+prepare_standata(data = data$data_lst, priors = priors,
                  order_continuous = order_continuous, state_sigma = FALSE, tvtp = TRUE)
 
 prepare_standata <- function(data = data, priors = priors, order_continuous = order_continuous,
@@ -918,7 +919,7 @@ naming_list <- function(x){
 
 #' default_stan_control
 #'
-#' Sets controls to default unless otherwise specified.
+#' @details Sets controls to default unless otherwise specified.
 
 
 default_stan_control <- function (adapt_delta = NULL, max_treedepth = 15L) {
@@ -932,7 +933,13 @@ default_stan_control <- function (adapt_delta = NULL, max_treedepth = 15L) {
 
 #' pars_include
 #'
-#' Set parameters to include in output.
+#' @details Set parameters to include in output.
+#'
+#' @return A vector of the parameters that should not be included.
+#'
+#' @examples
+#' pp1 <- pp2 <- Mx_d <- 0; pp3 <- Mx_e <- 1
+#' pars_include(pp1 = pp1, pp2 = pp2, pp3 = pp3, Mx_d = Mx_d, Mx_e = Mx_e)
 
 pars_include <- function(pp1 = 0, pp2 = 0, pp3 = 0, Mx_d = 0, Mx_e = 0){
   pars <- c("beta_un", "beta_ord")
