@@ -46,10 +46,10 @@ check_tp_s <- function(shared_TP = NULL, shared_S = NULL, n = NULL){
 
 #' data_parse
 #'
-#' @param formula_continuous
-#' @param formula_discrete
-#' @param state_varying_continuous
-#' @param state_varying_discrte
+#' @param formula_continuous The continuous formula
+#' @param formula_discrete The formula for the transition probabilities
+#' @param state_varying_continuous A vector of continuous parameters that varies by state.
+#' @param state_varying_discrete A vector of discrete parameterst that varies by state.
 #' @param data
 #' @param n
 #' @param t
@@ -58,23 +58,23 @@ check_tp_s <- function(shared_TP = NULL, shared_S = NULL, n = NULL){
 #' @param K
 #'
 #' @examples
-obs <- 200
-N <- 20
-T <- 10
-J <- 4
-Q <- 2
-data <- data.frame(y = rnorm(obs), x1 = rnorm(obs), z1 = rnorm(obs), n = sort(rep(seq(1, N), T)), t = rep(seq(1, T), N))
-jq <- data.frame(n = seq(1:N), j = sample(1:4, N, replace = TRUE))
-jq <- merge(jq, data.frame(j = seq(1, J), q = sample(1:Q, J, replace = TRUE)), by = "j")
-data <- merge(data, jq, by = "n")
-formula_continuous <- "y ~ 1 + x1"
-formula_discrete <- "z1"
-state_varying_continuous <- "Intercept"
-state_varying_discrete <- list(state = "z1", state_state = NULL)
-K <- 3
-data <- data_parse(formula_continuous = formula_continuous, formula_discrete = formula_discrete,
-           state_varying_continuous = state_varying_continuous, state_varying_discrete = state_varying_discrete,
-            data = data, n = "n", j = "j", q = "q", t = "t", K = K)
+#' obs <- 200
+#' N <- 20
+#' T <- 10
+#' J <- 4
+#' Q <- 2
+#' data <- data.frame(y = rnorm(obs), x1 = rnorm(obs), z1 = rnorm(obs), n = sort(rep(seq(1, N), T)), t = rep(seq(1, T), N))
+#' jq <- data.frame(n = seq(1:N), j = sample(1:4, N, replace = TRUE))
+#' jq <- merge(jq, data.frame(j = seq(1, J), q = sample(1:Q, J, replace = TRUE)), by = "j")
+#' data <- merge(data, jq, by = "n")
+#' formula_continuous <- "y ~ 1 + x1"
+#' formula_discrete <- "z1"
+#' state_varying_continuous <- "Intercept"
+#' state_varying_discrete <- list(state = "z1", state_state = NULL)
+#' K <- 3
+#' data <- data_parse(formula_continuous = formula_continuous, formula_discrete = formula_discrete,
+#'            state_varying_continuous = state_varying_continuous, state_varying_discrete = state_varying_discrete,
+#'             data = data, n = "n", j = "j", q = "q", t = "t", K = K)
 
 data_parse <- function(formula_continuous, formula_discrete,
                        state_varying_continuous, state_varying_discrete, data,
@@ -163,10 +163,11 @@ data_parse <- function(formula_continuous, formula_discrete,
 #' out <- .sort_and_na_extend(data = data, n = "n", j = "j", t = "t")
 
 .sort_and_na_extend <- function(data, n = NULL, t = NULL, j = NULL){
-  data <- data %>% rename(t = !!sym(t), n = !!sym(n), j = !!sym(j)) %>%
-    arrange(j,n,t) %>%
-    group_by(j) %>%
-    complete(nesting(j), t = seq(min(t), max(t))) %>% ungroup()
+  data <- rename(data, t = !!sym(t), n = !!sym(n), j = !!sym(j))
+  data <- dplyr::arrange(data, j, n, t)
+  data <- group_by(data, j)
+  data <- complete(data, nesting(j), t = seq(min(t), max(t)))
+  data <- ungroup(data)
   data <- as.data.frame(data)
   id_miss <- .return_id_miss(data)
   data[is.na(data)] <- 0
@@ -196,8 +197,8 @@ data_parse <- function(formula_continuous, formula_discrete,
 #' .j_define(j = j, n = n)
 
 .j_define <- function(data = data, j = j, n = n){
-  j <- data[, j]
-  n <- data[, n]
+  j <- as.matrix(data[, j])
+  n <- as.matrix(data[, n])
   if (j[1] == "individual"){
     out <- n # give everyone their own state process
   } else if (j[1] == "shared"){
@@ -221,22 +222,22 @@ data_parse <- function(formula_continuous, formula_discrete,
 #' t <- data.frame(j = seq(1, 4), q = rep(seq(1, 2), 2))
 #' N <- 20
 #' data <- t[sample(seq(1, 4), N, replace = TRUE), ]
-#' .state_probabilities(j = data[, 1], q = data[, 2])
-#' .state_probabilities(j = data[, 1], q = NULL)
-#' .state_probabilities(j = data[, 1], q = "individual")
-#' .state_probabilities(j = data[, 1], q = "shared")
+#' .state_probabilities(data = data, j = "j", q = "q")
+#' .state_probabilities(data = data, j = "j", q = NULL)
+#' .state_probabilities(data = data, j = "j", q = "individual")
+#' .state_probabilities(data = data, j = "j", q = "shared")
 
 .state_probabilities <- function(data = data, j = j, q = q){
-  q <- data[, q]
   j <- data[, j]
   if (is.null(q)){
     out <- unique(sort(j))
   } else {
-    if (q[1] == "individual"){
+    if (q == "individual"){
       out <- seq(1, length(unique(j)))
-    } else if (q[1] == "shared"){
+    } else if (q == "shared"){
       out <- rep(1, length(unique(j)))
     } else {
+      q <- data[, q]
       data <- cbind(j, q)
       data <- data[order(data[, 1]),]
       out <- unique(data) # unique combinations
@@ -497,32 +498,32 @@ start_stop_slicer <- function(j = j, t = t){
 #'
 #'
 #' order_continuous <- c("Intercept")
-priors <- prior_mat(prior = NULL, K = 3, y = data$data_lst$y)
-prepare_standata(data = data$data_lst, priors = priors,
-                 order_continuous = order_continuous, state_sigma = FALSE, tvtp = TRUE)
+#' priors <- prior_mat(prior = NULL, K = 3, y = data$data_lst$y)
+#' prepare_standata(data = data$data_lst, priors = priors,
+#'                  order_continuous = order_continuous, state_sigma = FALSE, tvtp = TRUE)
 
-prepare_standata <- function(data = data, priors = priors, order_continuous = order_continuous,
-                             state_sigma = state_sigma, tvtp = tvtp){
+prepare_standata <- function(data. = data, priors. = priors, order_continuous. = order_continuous,
+                             state_sigma. = state_sigma, tvtp. = 0){
 
     # NT
-    N <- data$N
-    n <- data$n
-    T <- data$T
-    NT <- data$NT
+    N <- data.$N
+    n <- data.$n
+    T <- data.$T
+    NT <- data.$NT
 
     # model specifications
-    K <- data$K
-    has_intercept <- data$has_intercept
-    id_miss <- data$id_miss
+    K <- data.$K
+    has_intercept <- data.$has_intercept
+    id_miss <- data.$id_miss
 
     # priors
-    A_prior <- priors[["A_prior"]]
-    priors <- priors[["priors"]]
+    A_prior <- priors.[["A_prior"]]
+    priors <- priors.[["priors"]]
 
     # Coerce to matrixes
-    x_d <- data$x_d
-    x_e <- data$x_e
-    z <- cbind(data$x_a, data$x_b, data$x_c)
+    x_d <- data.$x_d
+    x_e <- data.$x_e
+    z <- cbind(data.$x_a, data.$x_b, data.$x_c)
 
     # dimensions
     Mx_d <- if (!is.null(x_d)) ncol(x_d) else 0
@@ -535,30 +536,30 @@ prepare_standata <- function(data = data, priors = priors, order_continuous = or
     if (Mz == 0) z <- matrix(0, ncol = 0, nrow = NT)
 
     # time-varying transition probabilities
-    pp1 <- if (!is.null(data$x_a)) ncol(data$x_a) else 0
-    pp2 <- if (!is.null(data$x_b)) ncol(data$x_b) else 0
-    pp3 <- if (!is.null(data$x_c)) ncol(data$x_c) else 0
+    pp1 <- if (!is.null(data.$x_a)) ncol(data.$x_a) else 0
+    pp2 <- if (!is.null(data.$x_b)) ncol(data.$x_b) else 0
+    pp3 <- if (!is.null(data.$x_c)) ncol(data.$x_c) else 0
     pp_lambda <- matrix(0, nrow = 3, ncol = Mz)
     if (pp1 != 0) pp_lambda[1, 1:pp1] <- 1
     if (pp2 != 0) pp_lambda[2, (pp1 + 1):(pp1 + pp2)] <- 1
     if (pp3 != 0) pp_lambda[3, (pp1 + pp2 + 1):(pp1 + pp2 + pp3)] <- 1
-    pp_gamma <- pp_lambda[2, (pp1 + 1):ncol(pp_lambda)]
-    pp_eta <- pp_lambda[3, (pp1 + 1):ncol(pp_lambda)]
+    pp_gamma <- if (Mz != 0) pp_lambda[2, (pp1 + 1):ncol(pp_lambda)] else matrix(0, nrow = 0, ncol = 0)
+    pp_eta   <- if (Mz != 0) pp_lambda[3, (pp1 + 1):ncol(pp_lambda)] else matrix(0, nrow = 0, ncol = 0)
 
     # order vector
-    order_x_e <- .create_order_vector(data, order_continuous)
+    order_x_e <- .create_order_vector(data., order_continuous.)
 
     # output
-    y <- data$y
+    y <- data.$y
 
     # state process
-    NS <- data$J
-    NTP <- data$Q
-    id_tp <- data$id_tp
+    NS <- data.$J
+    NTP <- data.$Q
+    id_tp <- data.$id_tp
 
     # slicer
-    slicer_T <- slicer_time(j = data$j)
-    start_stop <- start_stop_slicer(j = data$j, t = data$t)
+    slicer_T <- slicer_time(j = data.$j)
+    start_stop <- start_stop_slicer(j = data.$j, t = data.$t)
 
     # standata
     standata <- list(
@@ -583,8 +584,8 @@ prepare_standata <- function(data = data, priors = priors, order_continuous = or
       x_d = x_d,    # [NT, Mx_d] matrix of fixed predictors of continuous process
       x_e = x_e,    # [NT, Mx_e] matrix of varying predictors of continuous process
       y = y,      # [NT] vector of output
-      state_sigma = as.integer(state_sigma), # 0: general,    1: state-specific
-      tvtp = as.integer(tvtp),
+      state_sigma = as.integer(state_sigma.), # 0: general,    1: state-specific
+      tvtp = as.integer(tvtp.),
       order_x_e = order_x_e, # [Mx_e + has_intercept[2]] 0: unordered, 1: ordered
       A_prior = A_prior, # [K] A_prior;
       priors = priors,  #[7,4];     // 1: Kind, 2: mean, 3: sd, 4: df; 1: normal, 2: cauchy, 3: student-t
@@ -770,13 +771,15 @@ check_data <- function(data, order_continuous, formula_continuous, formula_discr
 }
 
 .check_varying <- function(x, varying){
-  if (is.list(x)){
-    x <- unlist(a)
-  }
-  x[x == "1"] <- "Intercept"
-  for (i in varying){
-    if (!is.element(i, x)){
-      stop(paste0("The varying predictor ", i, " is not among the predictors of the continuous model."))
+  if (!is.null(x)){
+    if (is.list(x)){
+      x <- unlist(a)
+    }
+    x[x == "1"] <- "Intercept"
+    for (i in varying){
+      if (!is.element(i, x)){
+        stop(paste0("The varying predictor ", i, " is not among the predictors of the continuous model."))
+      }
     }
   }
 }
@@ -980,6 +983,15 @@ set_sampling_args <- function (object, user_dots = list(), user_adapt_delta = NU
     }
     args$save_warmup <- FALSE
     return(args)
+}
+
+#' softmax
+
+softmax <- function(x){
+  for (i in 1:nrow(x)){
+   x[i, ] <- exp(x[i, ])/sum(exp(x[i, ]))
+  }
+  return(x)
 }
 
 
