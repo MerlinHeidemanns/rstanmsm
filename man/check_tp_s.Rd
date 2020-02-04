@@ -2,7 +2,8 @@
 % Please edit documentation in R/misc.R
 \name{check_tp_s}
 \alias{check_tp_s}
-\title{check_tp_s}
+\title{#' turn_type
+#'}
 \usage{
 check_tp_s(shared_TP = NULL, shared_S = NULL, n = NULL)
 }
@@ -15,5 +16,25 @@ This function checks for the case that the user indicates that transition probab
 which is not possible. Returns an error.}
 }
 \description{
+form <- "y ~ 1 + x2 + as.factor(x1)"
+}
+\details{
+spl_form <- c("y", "1", "x2", "as.factor(x1)")
+
+x1 <- sample(c(1,2,3,4), 20, replace = TRUE)
+
+a <- "as.factor(x1)"
+
+gsub("\\)", "", gsub("as.factor\\(", "", a))
+
+
+data <- as.data.frame(as.matrix(t(rmultinom(20, 1, rep(1/3, 3))) %*% c(1, 2, 3), ncol = 1, nrow = 20))
+colnames(data) <- "x1"
+for (i in a){
+
+  tmp <- a
+
+}
+
 check_tp_s
 }

@@ -4,20 +4,44 @@
 \alias{stan_msm}
 \title{stan_msm}
 \usage{
-stan_msm(formula_discrete = NULL, formula_continuous,
-  family = gaussian(), data = data, n = n, t = t, K = NULL,
-  shared_TP = TRUE, shared_S = FALSE, state_SD = FALSE,
-  state_varying_continuous = c(), state_varying_discrete = list(),
-  order_continuous = c(), na.action = NULL, ... = ...,
-  prior = normal(), prior_intercept = normal(),
-  prior_aux = exponential(), prior_PD = FALSE,
-  algorithm = c("sampling", "optimizing"), init_prior = FALSE,
-  adapt_delta = NULL)
+stan_msm(
+  formula_discrete = NULL,
+  formula_continuous,
+  family = gaussian(),
+  data = data,
+  n = NULL,
+  t = NULL,
+  j = NULL,
+  q = NULL,
+  K = NULL,
+  state_sigma = FALSE,
+  state_varying_continuous = c(),
+  state_varying_discrete = list(state = NULL, state_state = NULL),
+  order_continuous = c(),
+  na.action = NULL,
+  ...,
+  prior = c(alpha = normal(), beta = normal(), gamma = normal(), delta = normal(), eta =
+    normal(), sigma()),
+  algorithm = c("sampling", "optimizing"),
+  init_prior = FALSE,
+  adapt_delta = NULL
+)
 }
 \arguments{
 \item{formula_discrete}{The formula of the discrete Markov process}
 
 \item{formula_continuous}{The formula of the continuous process}
+
+\item{family}{The distribution of the outcome.}
+
+\item{data}{A dataframe containing the variables references in `formula_discrete` and `formula_continuous`.}
+
+\item{j}{State-process association}
+
+\item{q}{Transition-process association}
+
+\item{order_continuous}{A character vector containing the names of the predictors that are supposed to be ordered.
+It can include "Intercept" to indicate that the intercept is supposed to be ordered.}
 }
 \description{
 stan_msm

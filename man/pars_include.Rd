@@ -4,8 +4,18 @@
 \alias{pars_include}
 \title{pars_include}
 \usage{
-pars_include(Mx_a = 0, Mx_b = 0, Mx_c = 0, Mx_d = 0, Mx_e = 0)
+pars_include(pp1 = 0, pp2 = 0, pp3 = 0, Mx_d = 0, Mx_e = 0)
+}
+\value{
+A vector of the parameters that should not be included.
 }
 \description{
+pars_include
+}
+\details{
 Set parameters to include in output.
+}
+\examples{
+pp1 <- pp2 <- Mx_d <- 0; pp3 <- Mx_e <- 1
+pars_include(pp1 = pp1, pp2 = pp2, pp3 = pp3, Mx_d = Mx_d, Mx_e = Mx_e)
 }

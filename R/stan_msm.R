@@ -17,7 +17,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
                      data = data, n = NULL, t = NULL, j = NULL, q = NULL, K = NULL, state_sigma = FALSE,
                      state_varying_continuous = c(), state_varying_discrete = list(state = NULL, state_state = NULL),
                      order_continuous = c(), na.action = NULL,
-                     ... = ...,
+                     ...,
                      prior = c(alpha = normal(), beta = normal(), gamma = normal(),
                                delta = normal(), eta = normal(), sigma()),
                      algorithm = c("sampling", "optimizing"),
@@ -52,7 +52,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
                                     data = data, n = n, t = t, j = j, q = q, K = K)
 
     # priors
-    priors <- prior_mat(prior = prior, K = K, outcome = parsed_data_names[["data_lst"]]$y)
+    priors <- prior_mat(prior = prior, K = K, y = parsed_data_names[["data_lst"]]$y)
 
     stanfit <- stan_msm.fit(data = parsed_data_names[["data_lst"]], K = K,
                             state_sigma = state_sigma,
@@ -60,7 +60,7 @@ stan_msm <- function(formula_discrete = NULL, formula_continuous, family = gauss
                             family = family, init_prior = init_prior,
                             id_miss = parsed_data_names[["id_miss"]],
                             priors = priors,
-                            algorithm = algorithm, ... = ...)
+                            algorithm = algorithm, ...)
 
     fit <- list(stanfit = stanfit, algorithm = algorithm, family = family,
                  data = parsed_data_names, stan_function = "stan_msm",

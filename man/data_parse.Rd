@@ -4,9 +4,49 @@
 \alias{data_parse}
 \title{data_parse}
 \usage{
-data_parse(formula_continuous, formula_discrete, state_varying_continuous,
-  state_varying_discrete, data, n_var, t_var, K)
+data_parse(
+  formula_continuous,
+  formula_discrete,
+  state_varying_continuous,
+  state_varying_discrete,
+  data,
+  n = NULL,
+  j = NULL,
+  t = NULL,
+  q = NULL,
+  K = K
+)
+}
+\arguments{
+\item{formula_continuous}{The continuous formula}
+
+\item{formula_discrete}{The formula for the transition probabilities}
+
+\item{state_varying_continuous}{A vector of continuous parameters that varies by state.}
+
+\item{state_varying_discrete}{A vector of discrete parameterst that varies by state.}
+
+\item{K}{}
 }
 \description{
 data_parse
+}
+\examples{
+obs <- 200
+N <- 20
+T <- 10
+J <- 4
+Q <- 2
+data <- data.frame(y = rnorm(obs), x1 = rnorm(obs), z1 = rnorm(obs), n = sort(rep(seq(1, N), T)), t = rep(seq(1, T), N))
+jq <- data.frame(n = seq(1:N), j = sample(1:4, N, replace = TRUE))
+jq <- merge(jq, data.frame(j = seq(1, J), q = sample(1:Q, J, replace = TRUE)), by = "j")
+data <- merge(data, jq, by = "n")
+formula_continuous <- "y ~ 1 + x1"
+formula_discrete <- "z1"
+state_varying_continuous <- "Intercept"
+state_varying_discrete <- list(state = "z1", state_state = NULL)
+K <- 3
+data <- data_parse(formula_continuous = formula_continuous, formula_discrete = formula_discrete,
+           state_varying_continuous = state_varying_continuous, state_varying_discrete = state_varying_discrete,
+            data = data, n = "n", j = "j", q = "q", t = "t", K = K)
 }

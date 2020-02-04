@@ -4,13 +4,25 @@
 \alias{stan_msm.fit}
 \title{stan_msm.fit}
 \usage{
-stan_msm.fit(data, K = 2, shared_TP = TRUE, shared_S = FALSE,
-  state_SD = FALSE, order_continuous, family = gaussian(),
-  init.prior = TRUE, algorithm = c("optimizing", "sampling"),
-  ... = ...)
+stan_msm.fit(
+  data = data,
+  state_sigma = FALSE,
+  order_continuous = order_continuous,
+  priors = priors,
+  family = gaussian(),
+  init_prior = FALSE,
+  algorithm = c("optimizing", "sampling"),
+  ...
+)
 }
 \arguments{
 \item{data}{Data is a list including matrixes for the sorted predictors and indicator vectors for n and t}
+
+\item{state_sigma}{text}
+
+\item{order_continuous}{text}
+
+\item{priors}{A list object containing the prior for the Dirichlet and all other parameters.}
 }
 \description{
 stan_msm.fit

@@ -2,10 +2,10 @@
 % Please edit documentation in R/misc.R
 \name{.sort_predictor}
 \alias{.sort_predictor}
-\title{formula_parse}
+\title{initialization}
 \usage{
 .sort_predictor(x)
 }
 \description{
-Parses the formulas into their components and stores them in a list
+initialization
 }

@@ -4,10 +4,27 @@
 \alias{dgp_nt_kbeq3}
 \title{DGP for MSM-TVTP balanced panel}
 \usage{
-dgp_nt_kbeq3(N, T, Mx_var, Mx_sha, Mz_var, Mz_sha, Mx_var_int = FALSE,
-  Mx_sha_int = FALSE, Mz_var_int = FALSE, Mz_sha_int = FALSE,
-  para.var = FALSE, gamma = NULL, lambda = NULL, zeta = NULL,
-  beta = NULL, mu = NULL, phi = NULL, fit = FALSE, K = 2)
+dgp_nt_kbeq3(
+  N,
+  T,
+  Mx_var,
+  Mx_sha,
+  Mz_var,
+  Mz_sha,
+  Mx_var_int = FALSE,
+  Mx_sha_int = FALSE,
+  Mz_var_int = FALSE,
+  Mz_sha_int = FALSE,
+  para.var = FALSE,
+  gamma = NULL,
+  lambda = NULL,
+  zeta = NULL,
+  beta = NULL,
+  mu = NULL,
+  phi = NULL,
+  fit = FALSE,
+  K = 2
+)
 }
 \arguments{
 \item{N}{The number of separate time series.}

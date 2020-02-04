@@ -7,5 +7,8 @@
 default_stan_control(adapt_delta = NULL, max_treedepth = 15L)
 }
 \description{
+default_stan_control
+}
+\details{
 Sets controls to default unless otherwise specified.
 }

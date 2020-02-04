@@ -4,9 +4,16 @@
 \alias{check_data}
 \title{check_order}
 \usage{
-check_data(data, order_continuous, formula_continuous, formula_discrete,
-  n_var, t_var, state_varying_continuous = c(),
-  state_varying_discrete = list())
+check_data(
+  data,
+  order_continuous,
+  formula_continuous,
+  formula_discrete,
+  n,
+  t,
+  state_varying_continuous = c(),
+  state_varying_discrete = list()
+)
 }
 \arguments{
 \item{data}{Included data frame}
